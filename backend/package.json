@@ -5,8 +5,10 @@
   "main": "dist/src/server.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
+    "dev:watch": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/src/server.js"
+    "start": "node dist/src/server.js",
+    "lint": "npx tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -27,13 +29,18 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
+    "google-auth-library": "^10.9.0",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.4",
     "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^9.0.3",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "pdfkit": "^0.19.1",
+    "razorpay": "^2.9.8",
+    "resend": "^6.17.2",
     "socket.io": "^4.8.3",
     "stripe": "^22.3.2",
     "zod": "^4.4.3"
@@ -43,6 +50,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.1",
+    "@types/pdfkit": "^0.17.6",
     "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",

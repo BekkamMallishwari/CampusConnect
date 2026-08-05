@@ -1,29 +1,236 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const getTransporter = () => {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = Number(process.env.SMTP_PORT || 587);
+// ─── Resend client (lazy-initialised) ────────────────────────────────────────
+let _resend: Resend | null = null;
 
-  if (!user || !pass) {
-    // Use Ethereal for development if no SMTP credentials provided
-    console.warn('[EmailService] No SMTP credentials. Using console transport fallback.');
-    return nodemailer.createTransport({
-      streamTransport: true,
-      newline: 'unix',
-    });
+const getResend = (): Resend | null => {
+  if (!_resend) {
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    if (!apiKey || apiKey === 'dummy_resend_api_key') {
+      return null;
+    }
+    _resend = new Resend(apiKey);
   }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
+  return _resend;
 };
 
-interface MatchEmailData {
+const FROM = () => process.env.EMAIL_FROM || 'CampusConnect <onboarding@resend.dev>';
+const APP_URL = () => (process.env.CLIENT_URL?.split(',')[0] || 'http://localhost:5173').trim();
+
+// ─── Shared HTML shell ────────────────────────────────────────────────────────
+const emailWrapper = (content: string) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CampusConnect</title>
+</head>
+<body style="margin:0;padding:0;background:#020617;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#020617;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0"
+        style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:28px 32px;text-align:center;">
+            <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.5px;">🎓 CampusConnect</div>
+            <div style="font-size:11px;color:#93c5fd;margin-top:6px;letter-spacing:3px;text-transform:uppercase;">University Lost &amp; Found Platform</div>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr><td style="padding:32px;">${content}</td></tr>
+        <!-- Footer -->
+        <tr>
+          <td style="background:#0a0f1e;padding:18px 32px;text-align:center;border-top:1px solid #1e293b;">
+            <p style="margin:0;font-size:12px;color:#475569;">
+              © 2026 CampusConnect &nbsp;·&nbsp;
+              <a href="${APP_URL()}" style="color:#38bdf8;text-decoration:none;">Visit App</a> &nbsp;·&nbsp;
+              <span style="color:#334155;">Automated System Notification</span>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`.trim();
+
+const ctaButton = (href: string, label: string) =>
+  `<div style="text-align:center;margin-top:28px;">
+     <a href="${href}"
+        style="display:inline-block;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;
+               font-weight:700;font-size:15px;padding:14px 38px;border-radius:50px;text-decoration:none;
+               letter-spacing:0.3px;">
+       ${label}
+     </a>
+   </div>`;
+
+// Safe Dispatch Helper
+const safeSendEmail = async (to: string, subject: string, html: string) => {
+  const resend = getResend();
+  if (!resend) {
+    console.info(`[EmailService] Resend not configured. Simulated dispatch to ${to} | Subject: "${subject}"`);
+    return;
+  }
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM(),
+      to,
+      subject,
+      html,
+    });
+    if (error) {
+      console.error(`[EmailService] Resend error for ${to}:`, error);
+    } else {
+      console.log(`[EmailService] Email sent to ${to}. Message ID: ${data?.id}`);
+    }
+  } catch (err) {
+    console.error(`[EmailService] Failed to send email to ${to}:`, err);
+  }
+};
+
+// 1. WELCOME EMAIL
+export const sendWelcomeEmail = async (email: string, name: string): Promise<void> => {
+  const body = `
+    <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Welcome to CampusConnect</p>
+    <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#f1f5f9;line-height:1.3;">
+      Hello ${name}, your account is ready! 🚀
+    </h1>
+    <p style="margin:0 0 16px;font-size:14px;color:#94a3b8;line-height:1.6;">
+      Welcome to your university's official Lost & Found platform. You can now report lost items, return found belongings, verify ownership with AI matching, and earn community rewards.
+    </p>
+    ${ctaButton(`${APP_URL()}/dashboard`, 'Go to Dashboard')}
+  `;
+  await safeSendEmail(email, '🎓 Welcome to CampusConnect!', emailWrapper(body));
+};
+
+// 2. LOGIN ALERT EMAIL
+export interface LoginAlertData {
+  email: string;
+  name: string;
+  ip: string;
+  device: string;
+  browser: string;
+  os: string;
+  time: Date;
+  isNewDevice?: boolean;
+}
+
+export const sendLoginAlertEmail = async (data: LoginAlertData): Promise<void> => {
+  const body = `
+    <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Security Notification</p>
+    <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#f1f5f9;line-height:1.3;">
+      ${data.isNewDevice ? '⚠️ New Login Detected on Your Account' : 'Successful Account Login'}
+    </h1>
+    <div style="background:#1e293b;border-radius:12px;padding:20px;margin-bottom:24px;">
+      <table cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#64748b;width:35%;">📱 Device</td>
+          <td style="padding:6px 0;font-size:13px;color:#f1f5f9;font-weight:600;">${data.device} (${data.os})</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#64748b;">🌐 Browser</td>
+          <td style="padding:6px 0;font-size:13px;color:#f1f5f9;font-weight:600;">${data.browser}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#64748b;">📍 IP Address</td>
+          <td style="padding:6px 0;font-size:13px;color:#cbd5e1;">${data.ip}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#64748b;">🕒 Time</td>
+          <td style="padding:6px 0;font-size:13px;color:#cbd5e1;">${data.time.toLocaleString()}</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin:0;font-size:13px;color:#94a3b8;line-height:1.6;">
+      If this was you, no action is needed. If you did not log in, please reset your password immediately.
+    </p>
+    ${ctaButton(`${APP_URL()}/forgot-password`, 'Secure Account')}
+  `;
+  await safeSendEmail(
+    data.email,
+    data.isNewDevice ? '🔐 Security Alert: Login from new device' : '🔐 Account Login Notification',
+    emailWrapper(body),
+  );
+};
+
+// 3. LOST ITEM REPORT CONFIRMATION
+export interface LostItemReportEmailData {
+  userName: string;
+  userEmail: string;
+  itemName: string;
+  category: string;
+  description: string;
+  lostLocation: string;
+  lostDate: string;
+  imageUrl?: string;
+  itemId: string;
+}
+
+export const sendLostItemReportEmail = async (data: LostItemReportEmailData): Promise<void> => {
+  const body = `
+    <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Hi, ${data.userName}</p>
+    <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#f1f5f9;line-height:1.3;">
+      Your lost item report has been submitted ✅
+    </h1>
+    <div style="background:#1e293b;border-radius:12px;padding:20px;margin-bottom:24px;">
+      ${data.imageUrl ? `<img src="${data.imageUrl}" alt="Item" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:16px;" />` : ''}
+      <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">${data.itemName}</div>
+      <div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:12px;">${data.description}</div>
+      <table cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#64748b;width:40%;">📍 Location</td>
+          <td style="padding:6px 0;font-size:13px;color:#cbd5e1;">${data.lostLocation}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#64748b;">📅 Date Lost</td>
+          <td style="padding:6px 0;font-size:13px;color:#cbd5e1;">${data.lostDate}</td>
+        </tr>
+      </table>
+    </div>
+    ${ctaButton(`${APP_URL()}/lost-items/${data.itemId}`, 'View Your Report')}
+  `;
+  await safeSendEmail(data.userEmail, `📋 Report Submitted – "${data.itemName}" | CampusConnect`, emailWrapper(body));
+};
+
+// 4. FOUND ITEM REPORT CONFIRMATION
+export interface FoundItemReportEmailData {
+  userName: string;
+  userEmail: string;
+  itemName: string;
+  category: string;
+  description: string;
+  foundLocation: string;
+  foundDate: string;
+  imageUrl?: string;
+  itemId: string;
+}
+
+export const sendFoundItemReportEmail = async (data: FoundItemReportEmailData): Promise<void> => {
+  const body = `
+    <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Thank You, ${data.userName}</p>
+    <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#f1f5f9;line-height:1.3;">
+      Found item report received 🎁
+    </h1>
+    <div style="background:#1e293b;border-radius:12px;padding:20px;margin-bottom:24px;">
+      ${data.imageUrl ? `<img src="${data.imageUrl}" alt="Item" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:16px;" />` : ''}
+      <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:8px;">${data.itemName}</div>
+      <div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:12px;">${data.description}</div>
+      <table cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="padding:6px 0;font-size:13px;color:#64748b;width:40%;">📍 Found Location</td>
+          <td style="padding:6px 0;font-size:13px;color:#cbd5e1;">${data.foundLocation}</td>
+        </tr>
+      </table>
+    </div>
+    ${ctaButton(`${APP_URL()}/found-items/${data.itemId}`, 'View Found Item')}
+  `;
+  await safeSendEmail(data.userEmail, `🟢 Found Item Logged – "${data.itemName}" | CampusConnect`, emailWrapper(body));
+};
+
+// 5. MATCH DETECTED (sent to BOTH users)
+export interface MatchEmailData {
   lostUser: { name: string; email: string };
   foundUser: { name: string; email: string };
   lostItem: { itemName: string; description: string; images: string[] };
@@ -32,149 +239,134 @@ interface MatchEmailData {
   matchId: string;
 }
 
-const getMatchEmailHtml = (data: MatchEmailData, isLostUser: boolean): string => {
+const buildMatchEmailHtml = (data: MatchEmailData, isLostUser: boolean): string => {
   const { lostItem, foundItem, matchPercentage, matchId } = data;
   const recipientName = isLostUser ? data.lostUser.name : data.foundUser.name;
   const headline = isLostUser
-    ? 'We found a possible match for your lost item!'
-    : 'Someone may have lost the item you found!';
+    ? '🔍 A possible match was found for your lost item!'
+    : '📦 Someone may have lost the item you found!';
 
-  const appUrl = process.env.CLIENT_URL?.split(',')[0] || 'http://localhost:5173';
-
-  return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CampusConnect – Match Found</title>
-</head>
-<body style="margin:0;padding:0;background:#020617;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#020617;padding:32px 0;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="background:#0f172a;border:1px solid #1e293b;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
-          <!-- Header -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#0e7490,#6d28d9);padding:32px;text-align:center;">
-              <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-0.5px;">🔍 CampusConnect</div>
-              <div style="font-size:13px;color:#a5f3fc;margin-top:6px;letter-spacing:2px;text-transform:uppercase;">Lost &amp; Found</div>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:32px;">
-              <p style="margin:0 0 8px;font-size:14px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Hello, ${recipientName}</p>
-              <h1 style="margin:0 0 24px;font-size:24px;font-weight:700;color:#f1f5f9;line-height:1.3;">${headline}</h1>
-              
-              <!-- Match Score Badge -->
-              <div style="background:linear-gradient(135deg,#0e7490,#6d28d9);border-radius:12px;padding:16px;text-align:center;margin-bottom:24px;">
-                <div style="font-size:42px;font-weight:800;color:#fff;">${matchPercentage}%</div>
-                <div style="font-size:13px;color:#a5f3fc;margin-top:4px;">Match Confidence</div>
-              </div>
-              
-              <!-- Items Comparison -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-                <tr>
-                  <td width="48%" style="background:#1e293b;border-radius:12px;padding:16px;vertical-align:top;">
-                    <div style="font-size:11px;color:#38bdf8;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">🔴 Lost Item</div>
-                    <div style="font-size:16px;font-weight:600;color:#f1f5f9;margin-bottom:6px;">${lostItem.itemName}</div>
-                    <div style="font-size:13px;color:#94a3b8;line-height:1.5;">${lostItem.description.slice(0, 100)}${lostItem.description.length > 100 ? '...' : ''}</div>
-                    ${lostItem.images[0] ? `<img src="${lostItem.images[0]}" alt="Lost Item" style="width:100%;border-radius:8px;margin-top:12px;object-fit:cover;max-height:120px;" />` : ''}
-                  </td>
-                  <td width="4%" style="text-align:center;vertical-align:middle;">
-                    <div style="font-size:20px;color:#6d28d9;">⟷</div>
-                  </td>
-                  <td width="48%" style="background:#1e293b;border-radius:12px;padding:16px;vertical-align:top;">
-                    <div style="font-size:11px;color:#34d399;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">🟢 Found Item</div>
-                    <div style="font-size:16px;font-weight:600;color:#f1f5f9;margin-bottom:6px;">${foundItem.itemName}</div>
-                    <div style="font-size:13px;color:#94a3b8;line-height:1.5;">${foundItem.description.slice(0, 100)}${foundItem.description.length > 100 ? '...' : ''}</div>
-                    ${foundItem.images[0] ? `<img src="${foundItem.images[0]}" alt="Found Item" style="width:100%;border-radius:8px;margin-top:12px;object-fit:cover;max-height:120px;" />` : ''}
-                  </td>
-                </tr>
-              </table>
-              
-              <!-- CTA Button -->
-              <div style="text-align:center;">
-                <a href="${appUrl}/matches/${matchId}" style="display:inline-block;background:linear-gradient(135deg,#0e7490,#6d28d9);color:#fff;font-weight:700;font-size:15px;padding:14px 36px;border-radius:50px;text-decoration:none;">
-                  View Match &amp; Connect
-                </a>
-              </div>
-              
-              <p style="margin:24px 0 0;font-size:13px;color:#64748b;text-align:center;">
-                If this doesn't look right, you can dismiss the match in your dashboard.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background:#0f172a;padding:20px;text-align:center;border-top:1px solid #1e293b;">
-              <p style="margin:0;font-size:12px;color:#475569;">© 2026 CampusConnect Lost &amp; Found · <a href="${appUrl}" style="color:#38bdf8;text-decoration:none;">Visit App</a></p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-  `.trim();
+  const body = `
+    <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Hello, ${recipientName}</p>
+    <h1 style="margin:0 0 24px;font-size:22px;font-weight:700;color:#f1f5f9;line-height:1.3;">${headline}</h1>
+    <div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;font-weight:900;color:#fff;">${matchPercentage}%</div>
+      <div style="font-size:12px;color:#93c5fd;margin-top:4px;letter-spacing:2px;text-transform:uppercase;">AI Match Confidence</div>
+    </div>
+    ${ctaButton(`${APP_URL()}/matches/${matchId}`, 'Review Match')}
+  `;
+  return emailWrapper(body);
 };
 
 export const sendMatchNotificationEmail = async (data: MatchEmailData): Promise<void> => {
-  const transporter = getTransporter();
-
-  const lostUserMail = {
-    from: `"CampusConnect" <${process.env.SMTP_USER || 'noreply@campusconnect.app'}>`,
-    to: data.lostUser.email,
-    subject: `🔍 ${data.matchPercentage}% Match Found for Your Lost Item – CampusConnect`,
-    html: getMatchEmailHtml(data, true),
-  };
-
-  const foundUserMail = {
-    from: `"CampusConnect" <${process.env.SMTP_USER || 'noreply@campusconnect.app'}>`,
-    to: data.foundUser.email,
-    subject: `📦 Possible Owner Found for Item You Reported – CampusConnect`,
-    html: getMatchEmailHtml(data, false),
-  };
-
-  try {
-    const info1 = await transporter.sendMail(lostUserMail);
-    const info2 = await transporter.sendMail(foundUserMail);
-    console.log('[EmailService] Match emails sent:', info1.messageId, info2.messageId);
-  } catch (err) {
-    console.error('[EmailService] Failed to send match emails:', err);
-  }
+  await Promise.all([
+    safeSendEmail(
+      data.lostUser.email,
+      `🔍 ${data.matchPercentage}% AI Match Found for "${data.lostItem.itemName}" – CampusConnect`,
+      buildMatchEmailHtml(data, true),
+    ),
+    safeSendEmail(
+      data.foundUser.email,
+      `📦 AI Match Detected for Found Item "${data.foundItem.itemName}" – CampusConnect`,
+      buildMatchEmailHtml(data, false),
+    ),
+  ]);
 };
 
-export const sendPasswordResetEmail = async (email: string, name: string, resetUrl: string): Promise<void> => {
-  const transporter = getTransporter();
-  const html = `
-    <div style="background:#020617;font-family:'Segoe UI',Arial,sans-serif;padding:40px 20px;">
-      <div style="max-width:480px;margin:0 auto;background:#0f172a;border-radius:16px;border:1px solid #1e293b;overflow:hidden;">
-        <div style="background:linear-gradient(135deg,#0e7490,#6d28d9);padding:24px;text-align:center;">
-          <h1 style="margin:0;color:#fff;font-size:22px;">Password Reset</h1>
-        </div>
-        <div style="padding:32px;">
-          <p style="color:#94a3b8;margin:0 0 16px;">Hi <strong style="color:#f1f5f9;">${name}</strong>,</p>
-          <p style="color:#94a3b8;margin:0 0 24px;">Click the button below to reset your password. This link expires in 1 hour.</p>
-          <div style="text-align:center;">
-            <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#0e7490,#6d28d9);color:#fff;font-weight:700;font-size:15px;padding:14px 36px;border-radius:50px;text-decoration:none;">Reset Password</a>
-          </div>
-          <p style="color:#475569;font-size:12px;margin:24px 0 0;text-align:center;">If you didn't request this, please ignore this email.</p>
-        </div>
-      </div>
-    </div>
+// 6. MATCH CONFIRMED
+export interface MatchConfirmedEmailData {
+  lostUser: { name: string; email: string };
+  foundUser: { name: string; email: string };
+  lostItem: { itemName: string };
+  foundItem: { itemName: string };
+  matchId: string;
+}
+
+export const sendMatchConfirmedEmail = async (data: MatchConfirmedEmailData): Promise<void> => {
+  const body = (isLostUser: boolean) => `
+    <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">Match Confirmed</p>
+    <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#f1f5f9;line-height:1.3;">
+      ✅ Ownership Verified for "${data.lostItem.itemName}"!
+    </h1>
+    <p style="margin:0 0 16px;font-size:14px;color:#94a3b8;line-height:1.6;">
+      Both parties have confirmed this match. Private chat messaging is unlocked.
+    </p>
+    ${ctaButton(`${APP_URL()}/matches/${data.matchId}`, 'Open Match Chat')}
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"CampusConnect" <${process.env.SMTP_USER || 'noreply@campusconnect.app'}>`,
-      to: email,
-      subject: 'Reset Your CampusConnect Password',
-      html,
-    });
-  } catch (err) {
-    console.error('[EmailService] Failed to send reset email:', err);
-  }
+  await Promise.all([
+    safeSendEmail(data.lostUser.email, `✅ Match Confirmed – "${data.lostItem.itemName}"`, emailWrapper(body(true))),
+    safeSendEmail(data.foundUser.email, `✅ Match Confirmed – "${data.foundItem.itemName}"`, emailWrapper(body(false))),
+  ]);
+};
+
+// 7. PASSWORD RESET EMAIL
+export const sendPasswordResetEmail = async (email: string, name: string, resetUrl: string): Promise<void> => {
+  const body = `
+    <p style="margin:0 0 8px;color:#94a3b8;">Hi <strong style="color:#f1f5f9;">${name}</strong>,</p>
+    <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#f1f5f9;">Reset Your Password</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.6;">
+      Click the button below to set a new password. This link expires in 1 hour.
+    </p>
+    ${ctaButton(resetUrl, 'Reset Password')}
+  `;
+  await safeSendEmail(email, '🔑 Reset Your CampusConnect Password', emailWrapper(body));
+};
+
+// 8. CLAIM NOTIFICATION EMAIL
+export const sendClaimEmail = async (
+  recipientEmail: string,
+  userName: string,
+  itemName: string,
+  action: 'requested' | 'approved' | 'rejected',
+): Promise<void> => {
+  const titles = {
+    requested: `Claim Requested for "${itemName}"`,
+    approved: `Claim Approved for "${itemName}" 🎉`,
+    rejected: `Update on Claim for "${itemName}"`,
+  };
+  const body = `
+    <p style="margin:0 0 8px;color:#94a3b8;">Hi ${userName},</p>
+    <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#f1f5f9;">${titles[action]}</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.6;">
+      Your claim status has been updated. Please log in to CampusConnect to view details.
+    </p>
+    ${ctaButton(`${APP_URL()}/matches`, 'View Claim Details')}
+  `;
+  await safeSendEmail(recipientEmail, `📢 ${titles[action]} | CampusConnect`, emailWrapper(body));
+};
+
+// 9. REWARD RECEIVED EMAIL
+export const sendRewardReceivedEmail = async (
+  recipientEmail: string,
+  userName: string,
+  amount: number,
+  itemName: string,
+): Promise<void> => {
+  const body = `
+    <p style="margin:0 0 8px;color:#94a3b8;">Congratulations ${userName}!</p>
+    <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#f1f5f9;">💰 Reward Payment Received</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.6;">
+      You received a reward of <strong>₹${amount}</strong> for returning "${itemName}". Thank you for keeping our campus honest!
+    </p>
+    ${ctaButton(`${APP_URL()}/rewards`, 'View Reward History')}
+  `;
+  await safeSendEmail(recipientEmail, `💰 Reward Received: ₹${amount} for "${itemName}"`, emailWrapper(body));
+};
+
+// 10. REPORT CLOSED EMAIL
+export const sendReportClosedEmail = async (
+  recipientEmail: string,
+  userName: string,
+  itemName: string,
+): Promise<void> => {
+  const body = `
+    <p style="margin:0 0 8px;color:#94a3b8;">Hi ${userName},</p>
+    <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#f1f5f9;">Report Closed</h1>
+    <p style="margin:0 0 24px;font-size:14px;color:#94a3b8;line-height:1.6;">
+      Your report for "${itemName}" has been marked as returned and closed.
+    </p>
+    ${ctaButton(`${APP_URL()}/dashboard`, 'Go to Dashboard')}
+  `;
+  await safeSendEmail(recipientEmail, `✅ Report Closed – "${itemName}"`, emailWrapper(body));
 };

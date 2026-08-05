@@ -4,12 +4,22 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Lock } from 'lucide-react';
 import { authApi } from '../lib/api';
+import PageTransition from '../components/PageTransition';
+
+const inputCls = `w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 
+  py-3 pl-11 pr-4 text-sm font-medium text-slate-900 dark:text-slate-100 
+  placeholder:text-slate-400 dark:placeholder:text-slate-500 
+  outline-none transition focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]`;
+
+const cardCls = `w-full max-w-md rounded-[1.75rem] border border-slate-200 dark:border-slate-700 
+  bg-white dark:bg-slate-900 p-8 
+  shadow-[0_24px_90px_rgba(15,23,42,0.12)] dark:shadow-[0_24px_90px_rgba(0,0,0,0.5)]`;
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
-  
+
   const token = searchParams.get('token');
   const email = searchParams.get('email');
 
@@ -27,11 +37,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      await authApi.resetPassword({
-        token,
-        email,
-        password: data.password,
-      });
+      await authApi.resetPassword({ token, email, password: data.password });
       toast.success('Password updated successfully! You can now sign in.');
       navigate('/login');
     } catch (err: any) {
@@ -43,33 +49,35 @@ export default function ResetPasswordPage() {
 
   if (!token || !email) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-16 text-slate-100">
-        <div className="w-full max-w-md rounded-3xl border border-slate-900 bg-slate-900/10 p-8 text-center shadow-2xl backdrop-blur-md">
-          <h2 className="text-xl font-bold text-white">Invalid Reset Session</h2>
-          <p className="mt-2 text-sm text-slate-400">
+      <PageTransition className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16 bg-slate-50 dark:bg-slate-950">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.10),transparent_28%)]" />
+        <div className={`${cardCls} text-center`}>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Invalid Reset Session</h2>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             The password reset link is invalid or has expired. Please request a new link.
           </p>
-          <Link to="/forgot-password" className="mt-6 inline-block rounded-2xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400">
+          <Link to="/forgot-password" className="cc-button-primary mt-6 inline-block rounded-xl px-6 py-2.5 text-sm font-black uppercase tracking-wider text-white">
             Request New Link
           </Link>
         </div>
-      </div>
+      </PageTransition>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-16 text-slate-100">
-      <div className="w-full max-w-md rounded-3xl border border-slate-900 bg-slate-900/10 p-8 shadow-2xl shadow-cyan-950/20 backdrop-blur-md">
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Reset Password</h1>
-        <p className="mt-2 text-sm text-slate-400">
+    <PageTransition className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16 bg-slate-50 dark:bg-slate-950">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.10),transparent_28%)]" />
+      <div className={cardCls}>
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">Reset Password</h1>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
           Enter your new password below. Must be at least 8 characters.
         </p>
 
         <form className="mt-8 space-y-4" onSubmit={handleSubmit(onSubmit)}>
           <div>
-            <label className="mb-1.5 block text-sm text-slate-350">New Password</label>
+            <label className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200">New Password</label>
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 dark:text-slate-500">
                 <Lock size={16} />
               </div>
               <input
@@ -77,15 +85,15 @@ export default function ResetPasswordPage() {
                 required
                 {...register('password', { required: true, minLength: 8 })}
                 placeholder="••••••••"
-                className="w-full rounded-2xl border border-slate-800 bg-slate-950/50 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-cyan-500"
+                className={inputCls}
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm text-slate-350">Confirm Password</label>
+            <label className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200">Confirm Password</label>
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 dark:text-slate-500">
                 <Lock size={16} />
               </div>
               <input
@@ -93,7 +101,7 @@ export default function ResetPasswordPage() {
                 required
                 {...register('confirmPassword', { required: true, minLength: 8 })}
                 placeholder="••••••••"
-                className="w-full rounded-2xl border border-slate-800 bg-slate-950/50 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-cyan-500"
+                className={inputCls}
               />
             </div>
           </div>
@@ -101,12 +109,12 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-cyan-500 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-75"
+            className="cc-button-primary w-full rounded-xl py-3.5 text-sm font-black uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? 'Updating password...' : 'Update password'}
+            {loading ? 'Updating password...' : 'Update Password'}
           </button>
         </form>
       </div>
-    </div>
+    </PageTransition>
   );
 }

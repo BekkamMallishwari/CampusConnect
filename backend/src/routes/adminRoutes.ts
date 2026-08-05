@@ -4,6 +4,7 @@ import LostItemModel from '../models/LostItem';
 import FoundItemModel from '../models/FoundItem';
 import MatchModel from '../models/Match';
 import PaymentModel from '../models/Payment';
+import ChatModel from '../models/Chat';
 import { requireAdmin, AuthRequest } from '../middleware/authMiddleware';
 
 const router = Router();
@@ -21,6 +22,11 @@ router.get('/analytics', requireAdmin, async (_req: AuthRequest, res: Response, 
         MatchModel.countDocuments({ matchStatus: 'Accepted' }),
         PaymentModel.countDocuments({ status: 'Completed' }),
       ]);
+    const returnedItems = await Promise.all([
+      LostItemModel.countDocuments({ status: 'Returned' }),
+      FoundItemModel.countDocuments({ status: 'Returned' }),
+    ]);
+    const activeChats = await ChatModel.countDocuments({ isClosed: false });
     const revenueAgg = await PaymentModel.aggregate([
       { $match: { status: 'Completed' } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
@@ -35,6 +41,8 @@ router.get('/analytics', requireAdmin, async (_req: AuthRequest, res: Response, 
       totalPayments,
       completedPayments,
       totalRevenue,
+      returnedItems: returnedItems[0] + returnedItems[1],
+      activeChats,
     });
   } catch (error) {
     next(error);

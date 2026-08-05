@@ -2,10 +2,18 @@ import { Router, Response, NextFunction } from 'express';
 import { SortOrder } from 'mongoose';
 import { z } from 'zod';
 import LostItemModel from '../models/LostItem';
+import ChatModel from '../models/Chat';
+import UserModel from '../models/User';
+import NotificationModel from '../models/Notification';
 import { requireAuth, AuthRequest } from '../middleware/authMiddleware';
-import { upload, uploadMultipleImages } from '../services/cloudinaryService';
+import { upload } from '../services/cloudinaryService';
+import { deleteStoredLostFoundImage, storeLostFoundImages } from '../services/lostFoundImageService';
+import { sendLostItemReportEmail } from '../services/emailService';
+import { POINTS, awardPoints } from '../services/rewardService';
+import { emitToUser } from '../services/socketHub';
 
 const router = Router();
+const uploadLostItemImages = upload.array('images', 5);
 
 const CATEGORIES = ['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other'];
 
@@ -20,18 +28,42 @@ const createLostItemSchema = z.object({
   brand: z.string().optional(),
   additionalNotes: z.string().optional(),
   contactNumber: z.string().trim().min(7, 'Contact number is required'),
+  existingImageUrls: z.string().optional(),
+  existingImagePublicIds: z.string().optional(),
 });
+
+const parseStringArray = (value?: string): string[] => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0) : [];
+  } catch {
+    return [];
+  }
+};
 
 // GET /api/lost-items
 router.get('/', async (req, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { search, category, status, sort } = req.query;
     const query: Record<string, unknown> = { isActive: true };
-    if (search) query.itemName = { $regex: search, $options: 'i' };
+
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const searchRegex = { $regex: search.trim(), $options: 'i' };
+      query.$or = [
+        { itemName: searchRegex },
+        { description: searchRegex },
+        { category: searchRegex },
+        { brand: searchRegex },
+        { lostLocation: searchRegex },
+        { color: searchRegex },
+      ];
+    }
+
     if (category && category !== 'All' && CATEGORIES.includes(category as string)) query.category = category;
     if (status && ['Pending', 'Matched', 'Returned'].includes(status as string)) query.status = status;
     const sortObj: Record<string, SortOrder> = sort === 'oldest' ? { createdAt: 1 } : { createdAt: -1 };
-    const items = await LostItemModel.find(query).sort(sortObj).populate('postedBy', 'name email avatar');
+    const items = await LostItemModel.find(query).sort(sortObj).populate('postedBy', 'name email avatar phone');
     res.json({ items });
   } catch (error) {
     next(error);
@@ -41,7 +73,7 @@ router.get('/', async (req, res: Response, next: NextFunction): Promise<void> =>
 // GET /api/lost-items/my-items
 router.get('/my-items', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const items = await LostItemModel.find({ postedBy: req.user?.userId }).sort({ createdAt: -1 }).populate('postedBy', 'name email avatar');
+    const items = await LostItemModel.find({ postedBy: req.user?.userId }).sort({ createdAt: -1 }).populate('postedBy', 'name email avatar phone');
     res.json({ items });
   } catch (error) {
     next(error);
@@ -66,7 +98,7 @@ router.get('/:id', async (req, res: Response, next: NextFunction): Promise<void>
 router.post(
   '/',
   requireAuth,
-  upload.array('images', 5),
+  uploadLostItemImages,
   async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const parsed = createLostItemSchema.safeParse(req.body);
@@ -74,15 +106,49 @@ router.post(
         res.status(400).json({ message: parsed.error.issues[0]?.message || 'Invalid item details' });
         return;
       }
-      const files = req.files as Express.Multer.File[] | undefined;
-      const images = files && files.length > 0 ? await uploadMultipleImages(files) : [];
+      const files = (req.files as Express.Multer.File[] | undefined) || [];
+      const uploadedImages = files.length > 0 ? await storeLostFoundImages(req, files) : [];
+      const existingImageUrls = parseStringArray(parsed.data.existingImageUrls);
+      const existingImagePublicIds = parseStringArray(parsed.data.existingImagePublicIds);
+      const images = [...existingImageUrls, ...uploadedImages.map((entry) => entry.imageUrl)];
+      const imagePublicIds = [...existingImagePublicIds, ...uploadedImages.map((entry) => entry.imagePublicId)];
+
       const item = await LostItemModel.create({
         ...parsed.data,
+        imageUrl: images[0] || '',
+        imagePublicId: imagePublicIds[0] || '',
+        imagePublicIds,
         images,
         postedBy: req.user?.userId,
         lostDate: new Date(parsed.data.lostDate),
       });
-      res.status(201).json({ message: 'Lost item reported successfully', item });
+      const populatedItem = await item.populate('postedBy', 'name email avatar phone');
+      await awardPoints(req.user!.userId, POINTS.lostReport);
+
+      // Send confirmation email asynchronously (non-blocking)
+      UserModel.findById(req.user?.userId)
+        .then((user) => {
+          if (user) {
+            sendLostItemReportEmail({
+              userName: user.name,
+              userEmail: user.email,
+              itemName: item.itemName,
+              category: item.category,
+              description: item.description,
+              lostLocation: item.lostLocation,
+              lostDate: new Date(item.lostDate).toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
+              imageUrl: item.images?.[0],
+              itemId: (item._id as { toString(): string }).toString(),
+            }).catch((e) => console.error('[Email] Lost item report email error:', e));
+          }
+        })
+        .catch((e) => console.error('[Email] Failed to fetch user for lost item email:', e));
+
+      res.status(201).json({ message: 'Lost item reported successfully', item: populatedItem });
     } catch (error) {
       next(error);
     }
@@ -93,7 +159,7 @@ router.post(
 router.put(
   '/:id',
   requireAuth,
-  upload.array('images', 5),
+  uploadLostItemImages,
   async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const item = await LostItemModel.findById(req.params.id);
@@ -111,15 +177,49 @@ router.put(
         res.status(400).json({ message: parsed.error.issues[0]?.message || 'Invalid data' });
         return;
       }
-      const files = req.files as Express.Multer.File[] | undefined;
-      if (files && files.length > 0) {
-        const newImages = await uploadMultipleImages(files);
-        item.images = [...item.images, ...newImages];
+
+      const files = (req.files as Express.Multer.File[] | undefined) || [];
+      const uploadedImages = files.length > 0 ? await storeLostFoundImages(req, files) : [];
+      const existingImageUrls = parseStringArray(parsed.data.existingImageUrls);
+      const existingImagePublicIds = parseStringArray(parsed.data.existingImagePublicIds);
+
+      const previousImageIds = item.imagePublicIds && item.imagePublicIds.length > 0
+        ? item.imagePublicIds
+        : item.imagePublicId
+          ? [item.imagePublicId]
+          : [];
+      const previousImageUrls = item.images && item.images.length > 0
+        ? item.images
+        : item.imageUrl
+          ? [item.imageUrl]
+          : [];
+
+      const shouldReplaceImages =
+        files.length > 0 ||
+        parsed.data.existingImageUrls !== undefined ||
+        parsed.data.existingImagePublicIds !== undefined;
+
+      const nextImageUrls = shouldReplaceImages
+        ? [...existingImageUrls, ...uploadedImages.map((entry) => entry.imageUrl)]
+        : previousImageUrls;
+      const nextImagePublicIds = shouldReplaceImages
+        ? [...existingImagePublicIds, ...uploadedImages.map((entry) => entry.imagePublicId)]
+        : previousImageIds;
+
+      if (shouldReplaceImages) {
+        const removedPublicIds = previousImageIds.filter((id: string) => !nextImagePublicIds.includes(id));
+        await Promise.all(removedPublicIds.map((identifier: string) => deleteStoredLostFoundImage(identifier)));
       }
+
       Object.assign(item, parsed.data);
       if (parsed.data.lostDate) item.lostDate = new Date(parsed.data.lostDate);
+      item.images = nextImageUrls;
+      item.imagePublicIds = nextImagePublicIds;
+      item.imageUrl = nextImageUrls[0] || '';
+      item.imagePublicId = nextImagePublicIds[0] || '';
       await item.save();
-      res.json({ message: 'Item updated successfully', item });
+      const populatedItem = await item.populate('postedBy', 'name email avatar phone');
+      res.json({ message: 'Item updated successfully', item: populatedItem });
     } catch (error) {
       next(error);
     }
@@ -138,9 +238,72 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response, next:
       res.status(403).json({ message: 'You can only delete your own reports' });
       return;
     }
+
+    const imageIdentifiers = item.imagePublicIds && item.imagePublicIds.length > 0
+      ? item.imagePublicIds
+      : item.imagePublicId
+        ? [item.imagePublicId]
+        : [];
+    await Promise.all(imageIdentifiers.map((identifier: string) => deleteStoredLostFoundImage(identifier)));
     item.isActive = false;
     await item.save();
     res.json({ message: 'Item removed successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/lost-items/:id/mark-returned
+router.post('/:id/mark-returned', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const item = await LostItemModel.findById(req.params.id);
+    if (!item) {
+      res.status(404).json({ message: 'Item not found' });
+      return;
+    }
+    if (item.postedBy.toString() !== req.user?.userId) {
+      res.status(403).json({ message: 'Only the owner can mark this item as returned' });
+      return;
+    }
+    if (item.status === 'Returned') {
+      res.json({ message: 'This item has already been returned.', item });
+      return;
+    }
+
+    item.status = 'Returned';
+    item.isActive = false;
+    item.returnedAt = new Date();
+    await item.save();
+
+    await ChatModel.updateMany(
+      { itemId: item._id, kind: 'conversation' },
+      { isClosed: true, closedAt: new Date() },
+    );
+
+    const chats = await ChatModel.find({ itemId: item._id, kind: 'conversation' }).select('requesterId');
+    await Promise.all(
+      chats.map(async (chat) => {
+        if (!chat.requesterId) return;
+        await NotificationModel.create({
+          userId: chat.requesterId,
+          type: 'Item',
+          title: 'Item returned',
+          message: `The item "${item.itemName}" has been marked as returned.`,
+          relatedId: item._id as any,
+          relatedModel: 'LostItem',
+        });
+        emitToUser(chat.requesterId.toString(), 'notification:new', {
+          title: 'Item returned',
+          message: `The item "${item.itemName}" has been marked as returned.`,
+          type: 'Item',
+          createdAt: new Date().toISOString(),
+          isRead: false,
+        });
+      }),
+    );
+
+    await awardPoints(req.user!.userId, POINTS.returnedItem);
+    res.json({ message: 'Item marked as returned', item });
   } catch (error) {
     next(error);
   }

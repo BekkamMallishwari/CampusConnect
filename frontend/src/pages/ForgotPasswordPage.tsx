@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { authApi } from '../lib/api';
+import PageTransition from '../components/PageTransition';
 
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
@@ -24,30 +25,31 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-16 text-slate-100">
-      <div className="w-full max-w-md rounded-3xl border border-slate-900 bg-slate-900/10 p-8 shadow-2xl shadow-cyan-950/20 backdrop-blur-md">
-        <Link to="/login" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition">
-          <ArrowLeft size={16} /> Back to Login
+    <PageTransition className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16 bg-slate-50 dark:bg-slate-950">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.10),transparent_28%)]" />
+      <div className="w-full max-w-md rounded-[1.75rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 shadow-[0_24px_90px_rgba(15,23,42,0.12)] dark:shadow-[0_24px_90px_rgba(0,0,0,0.5)]">
+        <Link to="/login" className="mb-6 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 transition hover:text-slate-900 dark:hover:text-white">
+          <ArrowLeft size={14} /> Back to Login
         </Link>
 
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Forgot Password?</h1>
-        <p className="mt-2 text-sm text-slate-400">
-          Enter your email address and we'll send you a link to reset your password.
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">Forgot Password?</h1>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          Enter your registered email address and we will send you instructions to reset your password.
         </p>
 
         {submitted ? (
-          <div className="mt-8 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-6 text-center">
-            <h3 className="text-lg font-bold text-white">Check your email</h3>
-            <p className="mt-2 text-sm text-slate-350">
-              We have sent a password reset link to your registered email address. Please follow the instructions to reset your password.
+          <div className="mt-8 rounded-2xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 p-6 text-center">
+            <h3 className="text-base font-bold text-emerald-800 dark:text-emerald-300">Check your email</h3>
+            <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-400">
+              We have sent a password reset link to your registered email address.
             </p>
           </div>
         ) : (
           <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)}>
             <div>
-              <label className="mb-1.5 block text-sm text-slate-350">Email Address</label>
+              <label className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200">Email Address</label>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 dark:text-slate-500">
                   <Mail size={16} />
                 </div>
                 <input
@@ -55,7 +57,7 @@ export default function ForgotPasswordPage() {
                   required
                   {...register('email', { required: true })}
                   placeholder="student@college.edu"
-                  className="w-full rounded-2xl border border-slate-800 bg-slate-950/50 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-cyan-500"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-3 pl-11 pr-4 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]"
                 />
               </div>
             </div>
@@ -63,13 +65,13 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-2xl bg-cyan-500 py-3.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-75"
+              className="cc-button-primary w-full rounded-xl py-3.5 text-sm font-black uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? 'Sending reset link...' : 'Send reset link'}
+              {loading ? 'Sending reset link...' : 'Send Reset Link'}
             </button>
           </form>
         )}
       </div>
-    </div>
+    </PageTransition>
   );
 }

@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "cloudinary": "^1.41.3",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^4.0.0",
+    "resend": "^6.17.2"
+  },
+  "devDependencies": {
+    "@types/multer": "^2.2.0"
+  }
+}

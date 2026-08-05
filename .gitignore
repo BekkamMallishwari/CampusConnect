@@ -1,0 +1,44 @@
+# Local environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+.env.*
+!.env.example
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.test
+**/.env.*.local
+**/.env.*
+!**/.env.example
+
+# Dependencies and build outputs
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Python virtual environments and caches
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor, OS, and local tooling files
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Temporary scratch files in this repo
+**/scratch_*.ts
+**/test-glob.ts

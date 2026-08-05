@@ -4,6 +4,9 @@ import { IUser } from './User';
 export interface IFoundItem extends Document {
   itemName: string;
   category: string;
+  imageUrl?: string;
+  imagePublicId?: string;
+  imagePublicIds?: string[];
   images: string[];
   foundDate: Date;
   foundTime?: string;
@@ -15,6 +18,7 @@ export interface IFoundItem extends Document {
   status: 'Waiting' | 'Matched' | 'Returned';
   postedBy: mongoose.Types.ObjectId | IUser;
   isActive: boolean;
+  returnedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,6 +27,9 @@ const foundItemSchema = new Schema<IFoundItem>(
   {
     itemName: { type: String, required: true, trim: true },
     category: { type: String, required: true },
+    imageUrl: { type: String },
+    imagePublicId: { type: String },
+    imagePublicIds: [{ type: String }],
     images: [{ type: String }],
     foundDate: { type: Date, required: true },
     foundTime: { type: String },
@@ -42,8 +49,27 @@ const foundItemSchema = new Schema<IFoundItem>(
     },
     postedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     isActive: { type: Boolean, default: true },
+    returnedAt: { type: Date },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret: any) {
+        ret.imageUrl = ret.imageUrl || (ret.images && ret.images.length > 0 ? ret.images[0] : '');
+        ret.imagePublicId = ret.imagePublicId || '';
+        ret.imagePublicIds = ret.imagePublicIds || [];
+        return ret;
+      },
+    },
+    toObject: {
+      transform(_doc, ret: any) {
+        ret.imageUrl = ret.imageUrl || (ret.images && ret.images.length > 0 ? ret.images[0] : '');
+        ret.imagePublicId = ret.imagePublicId || '';
+        ret.imagePublicIds = ret.imagePublicIds || [];
+        return ret;
+      },
+    },
+  },
 );
 
 foundItemSchema.index({ itemName: 'text', description: 'text' });

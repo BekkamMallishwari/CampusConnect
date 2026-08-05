@@ -1,247 +1,386 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   FileText,
   Search,
-  PlusCircle,
-  MessageSquare,
-  ArrowRight,
-  Clock,
+  PackageSearch,
+  MapPinned,
   Sparkles,
+  Clock,
+  Layers,
+  Zap,
+  BadgeCheck,
+  CreditCard,
+  Handshake,
+  MessageCircle,
+  Trophy,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { lostItemsApi, foundItemsApi, matchesApi, chatsApi, type LostItemType, type FoundItemType, type MatchType, type ChatType } from '../lib/api';
-import ItemCard from '../components/ItemCard';
+import {
+  foundItemsApi,
+  lostItemsApi,
+  matchesApi,
+  notificationsApi,
+  chatsApi,
+  type LostItemType,
+  type FoundItemType,
+  type MatchType,
+  type NotificationType,
+  type ChatType,
+} from '../lib/api';
+import PageTransition from '../components/PageTransition';
+import LoadingSpinner from '../components/LoadingSpinner';
+import {
+  StatsCard,
+  MetricCard,
+  QuickActionCard,
+  Timeline,
+  EmptyState,
+  Button,
+  Badge,
+} from '../components/ui';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const location = useLocation();
   const [lostItems, setLostItems] = useState<LostItemType[]>([]);
   const [foundItems, setFoundItems] = useState<FoundItemType[]>([]);
   const [matches, setMatches] = useState<MatchType[]>([]);
-  const [chats, setChats] = useState<ChatType[]>([]);
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
+  const [, setChats] = useState<ChatType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDashboard = async () => {
+      setLoading(true);
       try {
-        const [lostRes, foundRes, matchesRes, chatsRes] = await Promise.all([
-          lostItemsApi.getAll({ limit: 4 }),
-          foundItemsApi.getAll({ limit: 4 }),
-          matchesApi.getAll(),
-          chatsApi.getAll(),
+        const [lostRes, foundRes, matchRes, notifRes, chatsRes] = await Promise.all([
+          lostItemsApi.getAll().catch(() => ({ data: { items: [] } })),
+          foundItemsApi.getAll().catch(() => ({ data: { items: [] } })),
+          matchesApi.getAll().catch(() => ({ data: { matches: [] } })),
+          notificationsApi.getAll().catch(() => ({ data: { notifications: [] } })),
+          chatsApi.getAll().catch(() => ({ data: { chats: [] } })),
         ]);
-        setLostItems(lostRes.data.items.slice(0, 4));
-        setFoundItems(foundRes.data.items.slice(0, 4));
-        setMatches(matchesRes.data.matches.filter(m => m.matchStatus === 'Pending'));
-        setChats(chatsRes.data.chats);
-      } catch (err) {
-        console.error('Failed to load dashboard data', err);
+
+        setLostItems(lostRes.data.items || []);
+        setFoundItems(foundRes.data.items || []);
+        setMatches(matchRes.data.matches || []);
+        setNotifications(notifRes.data.notifications || []);
+        setChats(chatsRes.data.chats || []);
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, []);
 
-  const stats = [
-    { name: 'My Posts', value: lostItems.filter(i => i.postedBy._id === user?.id).length + foundItems.filter(i => i.postedBy._id === user?.id).length, icon: FileText, color: 'from-cyan-500 to-blue-500' },
-    { name: 'Pending Matches', value: matches.length, icon: Sparkles, color: 'from-amber-500 to-orange-500' },
-    { name: 'Active Chats', value: chats.length, icon: MessageSquare, color: 'from-purple-500 to-indigo-500' },
-  ];
+    fetchDashboard();
+  }, [location.state?.refreshLostFound]);
 
-  if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent"></div>
-      </div>
-    );
-  }
+  const analytics = useMemo(() => {
+    const totalReports = lostItems.length + foundItems.length;
+    const lostCount = lostItems.length;
+    const foundCount = foundItems.length;
+    const activeMatches = matches.filter((m) =>
+      ['Pending', 'PossibleMatch', 'LostUserVerified', 'CONFIRMED', 'PENDING_PAYMENT'].includes(m.matchStatus),
+    ).length;
+    const verificationPending = matches.filter((m) => m.verificationStatus === 'PENDING').length;
+    const verified = matches.filter((m) => m.verificationStatus === 'VERIFIED').length;
+    const meetingConfirmed = matches.filter((m) => m.meetingStatus === 'CONFIRMED').length;
+    const paymentPaid = matches.filter((m) => m.paymentStatus === 'PAID').length;
+    const unreadNotifs = notifications.filter((n) => !n.isRead).length;
+
+    return {
+      totalReports,
+      lostCount,
+      foundCount,
+      activeMatches,
+      verificationPending,
+      verified,
+      meetingConfirmed,
+      paymentPaid,
+      unreadNotifs,
+    };
+  }, [foundItems, lostItems, matches, notifications]);
+
+  const recentActivity = useMemo(() => {
+    const items = [
+      ...lostItems.map((i) => ({
+        type: 'lost' as const,
+        id: i._id,
+        title: i.itemName,
+        date: i.createdAt,
+        location: i.lostLocation,
+      })),
+      ...foundItems.map((i) => ({
+        type: 'found' as const,
+        id: i._id,
+        title: i.itemName,
+        date: i.createdAt,
+        location: i.foundLocation,
+      })),
+    ];
+    return items.sort((a, b) => +new Date(b.date) - +new Date(a.date)).slice(0, 5);
+  }, [foundItems, lostItems]);
+
+  if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-10">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-900 bg-slate-900/10 p-8 md:p-12 shadow-2xl shadow-cyan-950/10">
-        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl"></div>
-        <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
-        <div className="relative z-10 space-y-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 px-3.5 py-1 text-xs font-semibold text-cyan-400 border border-cyan-500/20">
-            <Sparkles size={12} />
-            Smart Matching Active
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Welcome back, {user?.name.split(' ')[0]}.
-          </h1>
-          <p className="max-w-2xl text-base leading-relaxed text-slate-350">
-            CampusConnect Lost & Found is tracking reported items. If similarity scores overlap, you'll be notified of possible matches instantly.
-          </p>
-          <div className="flex flex-wrap gap-4 pt-2">
-            <Link
-              to="/lost-items/new"
-              className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 shadow-lg shadow-cyan-500/15"
-            >
-              <PlusCircle size={16} />
-              Report Lost Item
-            </Link>
-            <Link
-              to="/found-items/new"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-800 bg-slate-950/50 px-5 py-3 text-sm font-bold text-slate-300 transition hover:border-slate-700 hover:text-white"
-            >
-              <Search size={16} />
-              Report Found Item
-            </Link>
+    <PageTransition className="space-y-8 py-2 pb-16">
+      {/* ── DASHBOARD HERO ────────────────────────────────────────── */}
+      <div className="glass-panel rounded-[var(--radius-2xl)] p-6 sm:p-8 hover-lift">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          {/* Left Hero Content */}
+          <div className="space-y-3 max-w-xl">
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--text)] sm:text-3xl">
+              Welcome back, {user?.name || 'Student'}
+            </h1>
+            <p className="text-xs text-[var(--secondary)] leading-relaxed">
+              Manage lost items, connect securely, and recover belongings faster.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Link to="/lost-items/new">
+                <Button size="md" variant="primary" className="gap-2">
+                  <FileText size={15} />
+                  Report Lost Item
+                </Button>
+              </Link>
+              <Link to="/found-items/new">
+                <Button size="md" variant="secondary" className="gap-2">
+                  <Search size={15} />
+                  Report Found Item
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Right Quick Overview Panel (Real Data Only) */}
+          <div className="w-full lg:w-80 space-y-2.5 rounded-[var(--radius-2xl)] border border-[var(--border)] bg-[var(--surface)] p-4 glass-panel">
+            <h3 className="text-xs font-bold text-[var(--text)] uppercase tracking-wider mb-2">
+              Quick Overview
+            </h3>
+            <MetricCard
+              label="Active Matches"
+              value={analytics.activeMatches}
+              icon={Zap}
+              color="text-blue-600 dark:text-blue-400"
+              bg="bg-blue-100/60 dark:bg-blue-950/60"
+            />
+            <MetricCard
+              label="Pending Verification"
+              value={analytics.verificationPending}
+              icon={Clock}
+              color="text-amber-600 dark:text-amber-400"
+              bg="bg-amber-100/60 dark:bg-amber-950/60"
+            />
+            <MetricCard
+              label="Unread Notifications"
+              value={analytics.unreadNotifs}
+              icon={Sparkles}
+              color="text-violet-600 dark:text-violet-400"
+              bg="bg-violet-100/60 dark:bg-violet-950/60"
+            />
           </div>
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid gap-6 sm:grid-cols-3">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.name} className="flex items-center justify-between rounded-3xl border border-slate-900 bg-slate-900/35 p-6 backdrop-blur-sm">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-405">{stat.name}</p>
-                <p className="mt-2 text-3xl font-bold text-white">{stat.value}</p>
-              </div>
-              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr ${stat.color} text-slate-950 shadow-md`}>
-                <Icon size={20} />
-              </div>
-            </div>
-          );
-        })}
+      {/* ── STATISTICS SECTION ───────────────────────────────────── */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">
+          System Statistics
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard
+            label="Total Reports"
+            value={analytics.totalReports}
+            icon={Layers}
+            color="text-blue-600"
+            bg="bg-blue-50 dark:bg-blue-950/40"
+          />
+          <StatsCard
+            label="Lost Items"
+            value={analytics.lostCount}
+            icon={Search}
+            color="text-rose-600"
+            bg="bg-gradient-to-br from-rose-500/10 to-rose-500/5 dark:from-rose-500/20 dark:to-rose-500/10 backdrop-blur-md"
+          />
+          <StatsCard
+            label="Found Items"
+            value={analytics.foundCount}
+            icon={PackageSearch}
+            color="text-emerald-600"
+            bg="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 dark:from-emerald-500/20 dark:to-emerald-500/10 backdrop-blur-md"
+          />
+          <StatsCard
+            label="AI Matches"
+            value={analytics.activeMatches}
+            icon={Zap}
+            color="text-indigo-600"
+            bg="bg-indigo-50 dark:bg-indigo-950/40"
+          />
+          <StatsCard
+            label="Pending Verification"
+            value={analytics.verificationPending}
+            icon={Clock}
+            color="text-amber-600"
+            bg="bg-amber-50 dark:bg-amber-950/40"
+          />
+          <StatsCard
+            label="Ownership Verified"
+            value={analytics.verified}
+            icon={BadgeCheck}
+            color="text-violet-600"
+            bg="bg-gradient-to-br from-violet-500/10 to-violet-500/5 dark:from-violet-500/20 dark:to-violet-500/10 backdrop-blur-md"
+          />
+          <StatsCard
+            label="Meetings Confirmed"
+            value={analytics.meetingConfirmed}
+            icon={Handshake}
+            color="text-cyan-600"
+            bg="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 dark:from-cyan-500/20 dark:to-cyan-500/10 backdrop-blur-md"
+          />
+          <StatsCard
+            label="Rewards Paid"
+            value={analytics.paymentPaid}
+            icon={CreditCard}
+            color="text-emerald-600"
+            bg="bg-emerald-50 dark:bg-emerald-950/40"
+          />
+        </div>
       </div>
 
-      {/* Grid of matches and posts */}
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Left 2 Cols: Items feed */}
-        <div className="lg:col-span-2 space-y-10">
-          {/* Lost Items feed */}
-          <div>
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Recent Lost Reports</h2>
-                <p className="text-sm text-slate-400">Items recently reported missing by campus students</p>
-              </div>
-              <Link to="/lost-items" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition">
-                View All <ArrowRight size={13} />
-              </Link>
-            </div>
+      {/* ── QUICK ACTIONS ────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-bold text-[var(--text)] uppercase tracking-wider">
+          Quick Actions
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <QuickActionCard
+            title="Report Lost Item"
+            description="Submit details of an item you misplaced"
+            to="/lost-items/new"
+            icon={FileText}
+            color="text-rose-600"
+            bg="bg-rose-50 dark:bg-rose-950/40"
+          />
+          <QuickActionCard
+            title="Report Found Item"
+            description="Log an item you discovered on campus"
+            to="/found-items/new"
+            icon={Search}
+            color="text-emerald-600"
+            bg="bg-emerald-50 dark:bg-emerald-950/40"
+          />
+          <QuickActionCard
+            title="Messages"
+            description="Private secure chat for confirmed matches"
+            to="/messages"
+            icon={MessageCircle}
+            color="text-blue-600"
+            bg="bg-gradient-to-br from-blue-500/10 to-blue-500/5 dark:from-blue-500/20 dark:to-blue-500/10 backdrop-blur-md"
+          />
+          <QuickActionCard
+            title="Rewards"
+            description="Points, badges & student leaderboard"
+            to="/rewards"
+            icon={Trophy}
+            color="text-amber-600"
+            bg="bg-gradient-to-br from-amber-500/10 to-amber-500/5 dark:from-amber-500/20 dark:to-amber-500/10 backdrop-blur-md"
+          />
+          <QuickActionCard
+            title="Payments"
+            description="Track reward transactions and escrow"
+            to="/payments"
+            icon={CreditCard}
+            color="text-indigo-600"
+            bg="bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 dark:from-indigo-500/20 dark:to-indigo-500/10 backdrop-blur-md"
+          />
+          <QuickActionCard
+            title="Campus Map"
+            description="Interactive map of lost & found spots"
+            to="/campus-map"
+            icon={MapPinned}
+            color="text-teal-600"
+            bg="bg-gradient-to-br from-teal-500/10 to-teal-500/5 dark:from-teal-500/20 dark:to-teal-500/10 backdrop-blur-md"
+          />
+        </div>
+      </div>
 
-            {lostItems.length === 0 ? (
-              <div className="rounded-3xl border border-slate-900 bg-slate-900/10 py-12 text-center text-slate-400">
-                No items lost yet.
-              </div>
-            ) : (
-              <div className="grid gap-6 sm:grid-cols-2">
-                {lostItems.map((item) => (
-                  <ItemCard key={item._id} item={item} type="lost" isOwner={item.postedBy._id === user?.id} />
-                ))}
-              </div>
-            )}
+      {/* ── RECENT ACTIVITY & AI MATCHES ──────────────────────────── */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Activity */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-xs)] space-y-4">
+          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-[var(--primary)]" />
+              <h2 className="text-sm font-bold text-[var(--text)]">Recent Activity</h2>
+            </div>
+            <Link to="/lost-items" className="text-xs font-semibold text-[var(--primary)] hover:underline">
+              View Catalog
+            </Link>
           </div>
 
-          {/* Found Items feed */}
-          <div>
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Recent Found Reports</h2>
-                <p className="text-sm text-slate-400">Items discovered around campus waiting for owners</p>
-              </div>
-              <Link to="/found-items" className="flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition">
-                View All <ArrowRight size={13} />
-              </Link>
-            </div>
-
-            {foundItems.length === 0 ? (
-              <div className="rounded-3xl border border-slate-900 bg-slate-900/10 py-12 text-center text-slate-400">
-                No items found yet.
-              </div>
-            ) : (
-              <div className="grid gap-6 sm:grid-cols-2">
-                {foundItems.map((item) => (
-                  <ItemCard key={item._id} item={item} type="found" isOwner={item.postedBy._id === user?.id} />
-                ))}
-              </div>
-            )}
-          </div>
+          <Timeline items={recentActivity} />
         </div>
 
-        {/* Right Col: Active matches & chats */}
-        <div className="space-y-8">
-          {/* Matches Panel */}
-          <div className="rounded-3xl border border-slate-900 bg-slate-900/40 p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-white">Pending Matches</h3>
-            <p className="text-xs text-slate-400">Requires verification to open chat channels</p>
+        {/* AI Smart Matches */}
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-xs)] space-y-4">
+          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-500" />
+              <h2 className="text-sm font-bold text-[var(--text)]">
+                AI Matches ({matches.length})
+              </h2>
+            </div>
+            <Link to="/matches" className="text-xs font-semibold text-[var(--primary)] hover:underline">
+              All Matches
+            </Link>
+          </div>
 
-            <div className="mt-6 space-y-4">
-              {matches.length === 0 ? (
-                <div className="py-6 text-center text-sm text-slate-405">
-                  No pending matches to verify.
-                </div>
-              ) : (
-                matches.slice(0, 4).map((match) => (
-                  <Link
-                    key={match._id}
-                    to={`/matches/${match._id}`}
-                    className="flex items-center justify-between rounded-2xl border border-slate-850 bg-slate-950/40 p-4 transition hover:bg-slate-900/40"
-                  >
-                    <div className="space-y-1 truncate">
-                      <p className="text-sm font-semibold text-white truncate">
-                        {match.lostItemId.itemName} ⟷ {match.foundItemId.itemName}
-                      </p>
-                      <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <Clock size={11} /> Confidence: {match.matchPercentage}%
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-bold text-cyan-400 border border-cyan-500/20">
-                      View
+          {matches.length === 0 ? (
+            <EmptyState
+              title="No matches found yet"
+              description="AI matching will appear when compatible items are reported."
+              icon={Sparkles}
+            />
+          ) : (
+            <div className="space-y-3">
+              {matches.slice(0, 3).map((match) => (
+                <div
+                  key={match._id}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3 transition hover:border-blue-300 dark:hover:border-blue-800"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[var(--primary)] flex items-center gap-1">
+                      <Sparkles size={13} /> {match.matchPercentage}% Confidence
                     </span>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
+                    <Badge tone={match.matchStatus === 'Rejected' ? 'danger' : match.matchStatus === 'Confirmed' || match.matchStatus === 'CONFIRMED' ? 'success' : 'warning'}>
+                      {match.matchStatus}
+                    </Badge>
+                  </div>
 
-          {/* Chats Panel */}
-          <div className="rounded-3xl border border-slate-900 bg-slate-900/40 p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-white">Active Handovers</h3>
-            <p className="text-xs text-slate-400">Private communication lines with other students</p>
+                  <p className="text-xs text-[var(--text)] font-semibold">
+                    {match.lostItemId?.itemName || 'Lost Item'} ↔ {match.foundItemId?.itemName || 'Found Item'}
+                  </p>
 
-            <div className="mt-6 space-y-4">
-              {chats.length === 0 ? (
-                <div className="py-6 text-center text-sm text-slate-405">
-                  No active chats.
-                </div>
-              ) : (
-                chats.slice(0, 4).map((chat) => {
-                  const counterpart = chat.participants.find((p) => p.id !== user?.id);
-                  return (
-                    <Link
-                      key={chat._id}
-                      to={`/chats/${chat._id}`}
-                      className="flex items-center gap-3.5 rounded-2xl border border-slate-850 bg-slate-950/40 p-4 transition hover:bg-slate-900/40"
-                    >
-                      {counterpart?.avatar ? (
-                        <img src={counterpart.avatar} alt={counterpart.name} className="h-9 w-9 rounded-full object-cover" />
-                      ) : (
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-950 text-xs font-semibold text-indigo-400 uppercase">
-                          {counterpart?.name.charAt(0) || '?'}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{counterpart?.name}</p>
-                        <p className="text-xs text-slate-400 truncate">
-                          {chat.lastMessage?.text || 'Sent an attachment.'}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Link to={`/matches/${match._id}`}>
+                      <Button size="sm" variant="primary">
+                        Review Match
+                      </Button>
                     </Link>
-                  );
-                })
-              )}
+                    {match.chatId && (
+                      <Link to={`/messages/${typeof match.chatId === 'string' ? match.chatId : match.chatId._id}`}>
+                        <Button size="sm" variant="secondary">
+                          Go to Messages
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }
