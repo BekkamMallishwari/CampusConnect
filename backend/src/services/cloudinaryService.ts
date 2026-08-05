@@ -1,28 +1,24 @@
-import { v2 as cloudinary } from 'cloudinary';
 import { randomUUID } from 'crypto';
 import multer from 'multer';
 import { Request, Response, NextFunction } from 'express';
 import { Readable } from 'stream';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { cloudinary, configureCloudinary } from '../config/cloudinary';
 
-const getCloudinaryConfig = () => {
-  const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
-  const api_key = process.env.CLOUDINARY_API_KEY;
-  const api_secret = process.env.CLOUDINARY_API_SECRET;
-
-  if (cloud_name && api_key && api_secret) {
-    cloudinary.config({ cloud_name, api_key, api_secret });
-    return { cloud_name, api_key, api_secret };
-  }
-  return null;
-};
+const getCloudinaryConfig = () => (configureCloudinary() ? true : null);
 
 const sanitizeFileName = (value: string) =>
   value
     .replace(/\.[^.]+$/, '')
     .replace(/[^a-zA-Z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'image';
+
+type UploadBufferOptions = {
+  folder?: string;
+  resourceType?: 'image' | 'video' | 'raw';
+  localExtension?: string;
+};
 
 export const upload = multer({
   storage: multer.memoryStorage(),
@@ -37,15 +33,23 @@ export const upload = multer({
   },
 });
 
-export const uploadBufferToCloudinary = async (buffer: Buffer, filename: string, req?: Request): Promise<string> => {
+export const uploadBufferToCloudinary = async (
+  buffer: Buffer,
+  filename: string,
+  req?: Request,
+  options: UploadBufferOptions = {},
+): Promise<string> => {
   const uniquePublicId = `item_${Date.now()}_${randomUUID().slice(0, 8)}_${sanitizeFileName(filename)}`;
+  const folder = options.folder || 'campusconnect/lost-found';
+  const resourceType = options.resourceType || 'image';
+  const localExtension = options.localExtension || '.jpg';
   const config = getCloudinaryConfig();
 
   if (!config) {
     console.warn(`[Cloudinary:Warn] Credentials missing. Saving file "${filename}" locally to uploads folder...`);
     const uploadsDir = path.resolve(process.cwd(), 'uploads', 'lost-found');
     await fs.mkdir(uploadsDir, { recursive: true });
-    const localFileName = `${uniquePublicId}.jpg`;
+    const localFileName = `${uniquePublicId}${localExtension}`;
     const localFilePath = path.join(uploadsDir, localFileName);
     await fs.writeFile(localFilePath, buffer);
 
@@ -59,10 +63,12 @@ export const uploadBufferToCloudinary = async (buffer: Buffer, filename: string,
     console.log(`[Cloudinary:Uploading] File="${filename}", size=${buffer.length} bytes, public_id="${uniquePublicId}"`);
     const stream = cloudinary.uploader.upload_stream(
       {
-        folder: 'campusconnect/lost-found',
+        folder,
         public_id: uniquePublicId,
-        resource_type: 'image',
-        transformation: [{ width: 1200, height: 1200, crop: 'limit', quality: 'auto' }],
+        resource_type: resourceType,
+        ...(resourceType === 'image'
+          ? { transformation: [{ width: 1200, height: 1200, crop: 'limit', quality: 'auto' }] }
+          : {}),
       },
       (error, result) => {
         if (error || !result) {
@@ -115,4 +121,3 @@ export const uploadImagesToCloud = (fieldName: string, maxCount = 5) => {
     }
   };
 };
-

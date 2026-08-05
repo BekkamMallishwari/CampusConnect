@@ -1,4 +1,5 @@
 import { Router, Response, NextFunction } from 'express';
+import path from 'node:path';
 import PostModel from '../models/Post';
 import { requireAuth, AuthRequest } from '../middleware/authMiddleware';
 import { upload, uploadBufferToCloudinary } from '../services/cloudinaryService';
@@ -56,7 +57,11 @@ router.post('/posts', requireAuth, upload.single('media'), async (req: AuthReque
     if (req.file) {
       const isVideo = req.file.mimetype.startsWith('video/');
       const folder = isVideo ? 'campusconnect/videos' : 'campusconnect/posts';
-      mediaUrl = await uploadBufferToCloudinary(req.file.buffer, folder);
+      mediaUrl = await uploadBufferToCloudinary(req.file.buffer, req.file.originalname, req, {
+        folder,
+        resourceType: isVideo ? 'video' : 'image',
+        localExtension: path.extname(req.file.originalname) || (isVideo ? '.mp4' : '.jpg'),
+      });
       mediaType = isVideo ? 'video' : 'image';
     }
 

@@ -1,10 +1,9 @@
 import multer from 'multer';
-import { storage } from '../config/cloudinary';
 
 const ALLOWED_MIMETYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 export const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (_req, file, cb) => {
     if (ALLOWED_MIMETYPES.includes(file.mimetype.toLowerCase())) {
@@ -17,4 +16,3 @@ export const upload = multer({
 
 // Middleware for uploading up to 5 images
 export const uploadImages = upload.array('images', 5);
-

@@ -1,5 +1,4 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
 export const configureCloudinary = () => {
   const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
@@ -20,21 +19,6 @@ export const configureCloudinary = () => {
 // Initial run
 configureCloudinary();
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (_req: any, file: any) => {
-    const sanitizeName = (file.originalname || 'image')
-      .split('.')[0]
-      .replace(/[^a-zA-Z0-9]/g, '_');
-    const uniquePublicId = `item_${Date.now()}_${Math.random().toString(36).substring(2, 8)}_${sanitizeName}`;
-    return {
-      folder: 'campusconnect/lost-found',
-      allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-      public_id: uniquePublicId,
-    };
-  },
-});
-
 export const deleteFromCloudinary = async (publicId: string): Promise<any> => {
   if (!publicId) return null;
   configureCloudinary();
@@ -48,6 +32,5 @@ export const deleteFromCloudinary = async (publicId: string): Promise<any> => {
   }
 };
 
-export { cloudinary, storage };
-
+export { cloudinary };
 
