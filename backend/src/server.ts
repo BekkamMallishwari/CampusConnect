@@ -273,8 +273,12 @@ app.use('/api/test-email', testEmailRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/community', communityRoutes);
 
+app.get('/', (_req, res) => {
+  res.status(200).send('CampusConnect Backend API is running 🚀');
+});
+
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', message: 'CampusConnect Lost & Found API is running' });
+  res.json({ status: 'ok' });
 });
 
 // 404 handler — must be after all routes
@@ -327,4 +331,3 @@ process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 startServer();
 
 export { io };
-
