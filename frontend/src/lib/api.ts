@@ -17,7 +17,7 @@ const getApiBaseUrl = (): string => {
     window.location.hostname !== '127.0.0.1' &&
     window.location.hostname !== '::1'
   ) {
-    return 'https://campusconnect-3dcg.onrender.com/api';
+    return 'https://campusconnect-qpgo.onrender.com/api';
   }
   return 'http://localhost:5001/api';
 };
@@ -28,7 +28,7 @@ export const getApiOrigin = () => {
   try {
     return new URL(API_BASE_URL).origin;
   } catch {
-    return 'https://campusconnect-3dcg.onrender.com';
+    return 'https://campusconnect-qpgo.onrender.com';
   }
 };
 
