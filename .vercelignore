@@ -1,0 +1,10 @@
+# Vercel Ignore Configuration
+# Prevent Vercel from detecting or deploying AI service or backend
+
+ai/
+backend/
+venv/
+.venv/
+__pycache__/
+*.pyc
+requirements.txt
