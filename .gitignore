@@ -7,6 +7,15 @@
 .env.*.local
 .env.*
 !.env.example
+!.env.*.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!frontend/.env.*.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.*.example
 **/.env
 **/.env.local
 **/.env.development
@@ -15,6 +24,7 @@
 **/.env.*.local
 **/.env.*
 !**/.env.example
+!**/.env.*.example
 
 # Dependencies and build outputs
 node_modules/
@@ -22,6 +32,7 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+.vite/
 
 # Python virtual environments and caches
 venv/
@@ -42,3 +53,4 @@ __pycache__/
 # Temporary scratch files in this repo
 **/scratch_*.ts
 **/test-glob.ts
+

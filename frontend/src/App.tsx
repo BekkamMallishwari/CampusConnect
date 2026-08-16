@@ -6,7 +6,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoadingSpinner from './components/LoadingSpinner';
 
 const LandingPage = lazy(() => import('./pages/LandingPage'));
-const AuthPage = lazy(() => import('./pages/AuthPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -62,8 +61,8 @@ export default function App() {
       <Routes>
         {/* Public Guest Routes */}
         <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
-        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
+        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage initialMode="login" />} />
+        <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage initialMode="signup" />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
