@@ -4,9 +4,10 @@ import UserModel from '../models/User';
 
 // Only register the Google OAuth Strategy if valid credentials are configured.
 // This prevents 401 invalid_client errors when secrets are missing or dummy values.
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const googleCallbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5001/api/auth/google/callback';
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
+const googleCallbackUrl =
+  process.env.GOOGLE_CALLBACK_URL?.trim() || 'http://localhost:5001/api/auth/google/callback';
 
 if (
   googleClientId &&
