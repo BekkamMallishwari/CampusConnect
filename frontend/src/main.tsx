@@ -12,7 +12,9 @@ import App from './App.tsx';
 import { getOptionalFrontendEnv } from './lib/env';
 
 const queryClient = new QueryClient();
-const googleClientId = getOptionalFrontendEnv('VITE_GOOGLE_CLIENT_ID');
+const googleClientId =
+  getOptionalFrontendEnv('VITE_GOOGLE_CLIENT_ID') ||
+  '173852314755-si78h16s4h4um55n0rhb9rk2h1do2u0k.apps.googleusercontent.com';
 const AppProviders = ({ children }: { children: ReactNode }) =>
   googleClientId ? <GoogleOAuthProvider clientId={googleClientId}>{children}</GoogleOAuthProvider> : <>{children}</>;
 

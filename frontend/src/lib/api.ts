@@ -1,13 +1,36 @@
 import axios from 'axios';
-import { requireFrontendEnv } from './env';
+import { getOptionalFrontendEnv } from './env';
 
-const normalizeApiBaseUrl = (value: string) => {
+const normalizeApiBaseUrl = (value?: string) => {
+  if (!value) return '';
   return value.replace(/\/+$/, '');
 };
 
-export const API_BASE_URL = normalizeApiBaseUrl(requireFrontendEnv('VITE_API_URL'));
+const getApiBaseUrl = (): string => {
+  const envUrl = getOptionalFrontendEnv('VITE_API_URL');
+  if (envUrl) {
+    return normalizeApiBaseUrl(envUrl);
+  }
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1' &&
+    window.location.hostname !== '::1'
+  ) {
+    return 'https://campusconnect-qpgo.onrender.com/api';
+  }
+  return 'http://localhost:5001/api';
+};
 
-export const getApiOrigin = () => new URL(API_BASE_URL).origin;
+export const API_BASE_URL = getApiBaseUrl();
+
+export const getApiOrigin = () => {
+  try {
+    return new URL(API_BASE_URL).origin;
+  } catch {
+    return 'https://campusconnect-qpgo.onrender.com';
+  }
+};
 
 export type UserType = {
   id: string;

@@ -48,7 +48,10 @@ import './config/passport';
 const app = express();
 const httpServer = createServer(app);
 
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://127.0.0.1:5173')
+const allowedOrigins = (
+  process.env.CLIENT_URL ||
+  'https://campusconnect-app-eight.vercel.app,http://localhost:5173,http://localhost:5174,http://localhost:5175,http://127.0.0.1:5173'
+)
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
@@ -66,9 +69,34 @@ const isLocalDevOrigin = (origin: string) => {
   }
 };
 
+const isAllowedOrigin = (origin?: string): boolean => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) return true;
+  try {
+    const parsed = new URL(origin);
+    if (
+      parsed.hostname === 'campusconnect-app-eight.vercel.app' ||
+      parsed.hostname.endsWith('.vercel.app')
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+};
+
 // Socket.IO setup for real-time chat
 const io = new SocketIOServer(httpServer, {
-  cors: { origin: allowedOrigins, credentials: true },
+  cors: {
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Socket CORS blocked: ${origin}`));
+    },
+    credentials: true,
+  },
 });
 setSocketServer(io);
 
@@ -229,15 +257,18 @@ io.on('connection', (rawSocket: Socket) => {
   });
 });
 
+app.set('trust proxy', 1);
+
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }),
 );
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       callback(new Error(`CORS blocked: ${origin}`));

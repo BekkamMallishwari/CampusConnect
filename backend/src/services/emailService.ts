@@ -15,7 +15,11 @@ const getResend = (): Resend | null => {
 };
 
 const FROM = () => process.env.EMAIL_FROM || 'CampusConnect <onboarding@resend.dev>';
-const APP_URL = () => (process.env.CLIENT_URL?.split(',')[0] || 'http://localhost:5173').trim();
+const APP_URL = () => {
+  const primary = process.env.CLIENT_URL?.split(',')[0]?.trim();
+  if (primary && !primary.includes('localhost') && !primary.includes('127.0.0.1')) return primary;
+  return primary || 'https://campusconnect-app-eight.vercel.app';
+};
 
 // ─── Shared HTML shell ────────────────────────────────────────────────────────
 const emailWrapper = (content: string) => `

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, type HTMLMotionProps } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
@@ -62,13 +63,13 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
         <div className="mb-1.5 flex items-center justify-between">
           <label className="block text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{label}</label>
           {showForgotPassword && (
-            <a
-              href="/forgot-password"
+            <Link
+              to="/forgot-password"
               className="text-xs font-bold transition-colors hover:underline"
               style={{ color: 'var(--dash-accent)' }}
             >
               Forgot Password?
-            </a>
+            </Link>
           )}
         </div>
         <div className="relative">
@@ -242,7 +243,9 @@ export const OAuthButton: React.FC<OAuthButtonProps> = ({
   ...props
 }) => {
   const isGoogle = provider === 'google';
-  const googleClientId = getOptionalFrontendEnv('VITE_GOOGLE_CLIENT_ID');
+  const googleClientId =
+    getOptionalFrontendEnv('VITE_GOOGLE_CLIENT_ID') ||
+    '173852314755-si78h16s4h4um55n0rhb9rk2h1do2u0k.apps.googleusercontent.com';
 
   const innerContent = (
     <>

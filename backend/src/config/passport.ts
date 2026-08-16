@@ -7,7 +7,10 @@ import UserModel from '../models/User';
 const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
 const googleCallbackUrl =
-  process.env.GOOGLE_CALLBACK_URL?.trim() || 'http://localhost:5001/api/auth/google/callback';
+  process.env.GOOGLE_CALLBACK_URL?.trim() ||
+  (process.env.NODE_ENV === 'production' || process.env.RENDER
+    ? 'https://campusconnect-qpgo.onrender.com/api/auth/google/callback'
+    : 'http://localhost:5001/api/auth/google/callback');
 
 if (
   googleClientId &&

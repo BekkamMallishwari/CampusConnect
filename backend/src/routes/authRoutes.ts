@@ -206,21 +206,36 @@ router.get('/google', (req: Request, res: Response, next: NextFunction) => {
 });
 
 const getClientUrl = (req: Request): string => {
-  const envOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://localhost:5174')
+  const envOrigins = (
+    process.env.CLIENT_URL ||
+    'https://campusconnect-app-eight.vercel.app,http://localhost:5173,http://localhost:5174'
+  )
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+
   const referer = req.headers.referer || req.headers.origin;
   if (referer) {
     try {
       const parsed = new URL(referer as string);
       const origin = `${parsed.protocol}//${parsed.host}`;
-      if (envOrigins.includes(origin) || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) return origin;
+      if (
+        envOrigins.includes(origin) ||
+        /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin) ||
+        parsed.hostname === 'campusconnect-app-eight.vercel.app' ||
+        parsed.hostname.endsWith('.vercel.app')
+      ) {
+        return origin;
+      }
     } catch (e) {
       // fallback
     }
   }
-  return envOrigins[0] || 'http://localhost:5173';
+
+  const productionOrigin = envOrigins.find(
+    (o) => !o.includes('localhost') && !o.includes('127.0.0.1'),
+  );
+  return productionOrigin || envOrigins[0] || 'https://campusconnect-app-eight.vercel.app';
 };
 
 // GET /api/auth/google/callback
@@ -445,7 +460,7 @@ router.post('/forgot-password', async (req: Request, res: Response, next: NextFu
     user.resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
     await user.save();
-    const appUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0];
+    const appUrl = getClientUrl(req);
     const resetUrl = `${appUrl}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
     await sendPasswordResetEmail(user.email, user.name, resetUrl);
     res.json({ message: 'If that email exists, a reset link has been sent.' });
