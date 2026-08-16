@@ -3,22 +3,13 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { ArrowLeft, Save, Sparkles, Wand2, MapPin, Tag, Phone, Gift } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Wand2, MapPin, Tag, Phone, FileText } from 'lucide-react';
 import { lostItemsApi, aiApi } from '../lib/api';
 import PageTransition from '../components/PageTransition';
 import ImageUploader from '../components/ImageUploader';
+import LocationPickerInput from '../components/LocationPickerInput';
 
 const CATEGORIES = ['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other'];
-const LOCATIONS = [
-  'Central Library',
-  'Student Activity Center (SAC)',
-  'Main Academic Block (AB-1)',
-  'Engineering Workshop',
-  'Sports Complex',
-  'Hostel Block A',
-  'Cafeteria',
-  'Other',
-];
 
 type FormData = {
   itemName: string;
@@ -34,19 +25,7 @@ type FormData = {
   rewardAmount: number;
 };
 
-const fieldCls = `w-full rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200 outline-none
-  bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
-  placeholder:text-slate-400 dark:placeholder:text-slate-500
-  border-slate-300 dark:border-slate-600
-  focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]`;
-
-const errorFieldCls = `w-full rounded-2xl border px-4 py-3 text-sm font-medium transition-all duration-200 outline-none
-  bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100
-  placeholder:text-slate-400 dark:placeholder:text-slate-500
-  border-red-400 dark:border-red-500
-  focus:border-red-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.15)]`;
-
-const labelCls = 'block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5';
+const labelCls = 'block text-xs font-bold uppercase tracking-wider mb-2 text-slate-700 dark:text-slate-200';
 
 export default function ReportLostItemPage() {
   const { id } = useParams<{ id?: string }>();
@@ -78,7 +57,7 @@ export default function ReportLostItemPage() {
       brand: '',
       additionalNotes: '',
       contactNumber: '',
-      rewardAmount: '' as unknown as number, // User must explicitly set their reward offer
+      rewardAmount: '' as unknown as number,
     },
   });
 
@@ -185,83 +164,85 @@ export default function ReportLostItemPage() {
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-4xl space-y-8 py-6 pb-20 px-4 sm:px-6">
-        {/* Header Navigation & Score */}
+      <div className="mx-auto max-w-4xl space-y-6 py-4 pb-20 px-2 sm:px-4">
+        {/* Navigation & Progress Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <Link
             to="/lost-items"
-            className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 transition hover:text-blue-600 dark:hover:text-blue-400"
+            className="dash-btn-secondary inline-flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold"
           >
-            <ArrowLeft size={16} /> Back to Lost Items
+            <ArrowLeft size={14} /> Back to Lost Items
           </Link>
 
-          <div className="flex items-center gap-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-1.5 shadow-sm">
-            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Report Completeness:</span>
+          <div className="glass-panel flex items-center gap-3 px-4 py-2">
+            <span className="text-xs font-bold" style={{ color: 'var(--dash-text-secondary)' }}>Quality Score:</span>
             <div className="h-2 w-28 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
               <div
                 className={`h-full transition-all duration-500 ${
-                  qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                  qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'
                 }`}
                 style={{ width: `${qualityScore}%` }}
               />
             </div>
-            <span className="text-xs font-extrabold text-slate-900 dark:text-white">{qualityScore}%</span>
+            <span className="text-xs font-black" style={{ color: 'var(--dash-text-primary)' }}>{qualityScore}%</span>
           </div>
         </div>
 
-        {/* Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 to-blue-900 p-6 text-white shadow-lg sm:p-8">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_70%_50%,white,transparent_60%)]" />
-          <div className="flex items-center gap-4 relative">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-white shadow-md backdrop-blur-sm">
-              <Sparkles size={28} />
+        {/* Hero Glass Banner */}
+        <div className="glass-hero-banner p-6 sm:p-8">
+          <div className="flex items-center gap-4 relative z-10">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-md"
+              style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
+            >
+              <Sparkles size={24} />
             </div>
             <div>
-              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-white">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
                 {isEdit ? 'Edit Lost Item Report' : 'Report a Lost Item'}
               </h1>
-              <p className="mt-1 text-sm font-medium text-blue-200">
+              <p className="mt-1 text-xs sm:text-sm font-medium" style={{ color: 'var(--dash-text-secondary)' }}>
                 Provide accurate details to enable automatic AI matching with reported found items.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Form */}
+        {/* Form Container */}
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="space-y-8 rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-md sm:p-10"
+          className="glass-panel p-6 sm:p-10 space-y-8"
         >
-          {/* Section 1 */}
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <Tag size={18} className="text-blue-600" />
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
-                1. Basic Item Details
+          {/* Section 1: Basic Details */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+              <Tag size={16} className="text-rose-500" />
+              <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--dash-text-primary)' }}>
+                1. Basic Item Information
               </h2>
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>
-                  Item Title <span className="text-red-500">*</span>
+                  Item Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
+                  placeholder="e.g., Apple iPhone 14 Pro Max in Space Black"
                   {...register('itemName', { required: 'Item title is required' })}
-                  placeholder="e.g. Blue Hydro Flask Water Bottle"
-                  className={errors.itemName ? errorFieldCls : fieldCls}
+                  className={`glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium ${errors.itemName ? 'border-rose-500' : ''}`}
                 />
-                {errors.itemName && <p className="mt-1.5 text-xs font-semibold text-red-500">{errors.itemName.message}</p>}
+                {errors.itemName && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.itemName.message}</p>}
               </div>
 
               <div>
                 <label className={labelCls}>
-                  Category <span className="text-red-500">*</span>
+                  Category <span className="text-rose-500">*</span>
                 </label>
                 <select
                   {...register('category', { required: 'Category is required' })}
-                  className={fieldCls}
+                  className="glass-input h-11 w-full px-4 text-xs sm:text-sm font-semibold"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -271,179 +252,170 @@ export default function ReportLostItemPage() {
             </div>
 
             <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  Detailed Description <span className="text-red-500">*</span>
+              <div className="flex items-center justify-between mb-2">
+                <label className={labelCls.replace('mb-2', '')}>
+                  Detailed Description <span className="text-rose-500">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={handleEnhanceDescription}
                   disabled={enhancing}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 disabled:opacity-50"
+                  className="dash-btn-secondary inline-flex items-center gap-1 py-1 px-2.5 text-[11px] font-bold"
                 >
-                  <Wand2 size={13} className={enhancing ? 'animate-spin' : ''} />
-                  {enhancing ? 'Enhancing...' : '✨ Enhance with AI'}
+                  <Wand2 size={12} className={enhancing ? 'animate-spin' : ''} />
+                  {enhancing ? 'Enhancing...' : 'AI Enhance'}
                 </button>
               </div>
               <textarea
                 rows={4}
+                placeholder="Describe key distinguishing features, scratches, stickers, wallpapers, case style, etc..."
                 {...register('description', { required: 'Description is required' })}
-                placeholder="Include color, scratches, stickers, distinct engravings, or contents..."
-                className={errors.description ? errorFieldCls : fieldCls}
+                className={`glass-input w-full p-4 text-xs sm:text-sm font-medium ${errors.description ? 'border-rose-500' : ''}`}
               />
-              {errors.description && <p className="mt-1.5 text-xs font-semibold text-red-500">{errors.description.message}</p>}
-            </div>
-          </div>
-
-          {/* Section 2 */}
-          <div className="space-y-5 pt-2">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <MapPin size={18} className="text-blue-600" />
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
-                2. Location & Date Lost
-              </h2>
+              {errors.description && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.description.message}</p>}
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className={labelCls}>
-                  Last Seen Location <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register('lostLocation', { required: 'Location is required' })}
-                  className={fieldCls}
-                >
-                  {LOCATIONS.map((loc) => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={labelCls}>
-                  Date Lost <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  {...register('lostDate', { required: 'Date is required' })}
-                  className={fieldCls}
-                />
-              </div>
-
-              <div>
-                <label className={labelCls}>Approximate Time</label>
+                <label className={labelCls}>Brand / Manufacturer</label>
                 <input
                   type="text"
-                  {...register('lostTime')}
-                  placeholder="e.g. Around 2:30 PM"
-                  className={fieldCls}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3 */}
-          <div className="space-y-5 pt-2">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <Sparkles size={18} className="text-blue-600" />
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
-                3. Attributes & Image Upload
-              </h2>
-            </div>
-
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label className={labelCls}>Brand Name</label>
-                <input
-                  type="text"
+                  placeholder="e.g., Apple, Dell, Titan, Nike"
                   {...register('brand')}
-                  placeholder="e.g. Sony, Apple, Nike"
-                  className={fieldCls}
+                  className="glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium"
                 />
+              </div>
+              <div>
+                <label className={labelCls}>Color / Finish</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Midnight Blue, Matte Black"
+                  {...register('color')}
+                  className="glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Location & Date */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+              <MapPin size={16} className="text-rose-500" />
+              <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--dash-text-primary)' }}>
+                2. Where & When was it Lost?
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={labelCls}>
+                  Where was it lost on campus? <span className="text-rose-500">*</span>
+                </label>
+                <LocationPickerInput
+                  value={watchAll.lostLocation || ''}
+                  onChange={(val) => setValue('lostLocation', val, { shouldValidate: true })}
+                  error={errors.lostLocation?.message}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>
+                    Date Lost <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    {...register('lostDate', { required: 'Date is required' })}
+                    className="glass-input h-11 w-full px-4 text-xs sm:text-sm font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Approximate Time</label>
+                  <input
+                    type="time"
+                    {...register('lostTime')}
+                    className="glass-input h-11 w-full px-4 text-xs sm:text-sm font-semibold"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Photos Upload */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+              <FileText size={16} className="text-rose-500" />
+              <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--dash-text-primary)' }}>
+                3. Item Photos (Optional but Recommended)
+              </h2>
+            </div>
+
+            <ImageUploader
+              images={displayedImages}
+              onChange={(urls) => setDisplayedImages(urls)}
+              onFilesChange={(files) => setNewImageFiles(files)}
+            />
+          </div>
+
+          {/* Section 4: Contact & Reward */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+              <Phone size={16} className="text-rose-500" />
+              <h2 className="text-xs font-black uppercase tracking-wider" style={{ color: 'var(--dash-text-primary)' }}>
+                4. Contact & Finder Reward Offer
+              </h2>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelCls}>
+                  Contact Number <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  {...register('contactNumber', { required: 'Contact number is required' })}
+                  className={`glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium ${errors.contactNumber ? 'border-rose-500' : ''}`}
+                />
+                <p className="mt-1 text-[11px]" style={{ color: 'var(--dash-text-muted)' }}>
+                  Kept private until an AI match is confirmed by you.
+                </p>
               </div>
 
               <div>
-                <label className={labelCls}>Primary Color</label>
-                <input
-                  type="text"
-                  {...register('color')}
-                  placeholder="e.g. Matte Black / Silver"
-                  className={fieldCls}
-                />
+                <label className={labelCls}>
+                  Optional Reward Offer (₹ INR)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 500"
+                    {...register('rewardAmount', { valueAsNumber: true })}
+                    className="glass-input h-11 w-full pl-8 pr-4 text-xs sm:text-sm font-bold"
+                  />
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                    ₹
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px]" style={{ color: 'var(--dash-text-muted)' }}>
+                  Incentivize finders to safely return your item.
+                </p>
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
-                Item Photos
-              </label>
-              <ImageUploader
-                images={displayedImages}
-                onChange={(imgs) => setDisplayedImages(imgs)}
-                onFilesChange={(files) => setNewImageFiles(files)}
-                maxImages={5}
-              />
-            </div>
           </div>
 
-          {/* Section 4 */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <Phone size={18} className="text-blue-600" />
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
-                4. Contact Information <span className="text-red-500">*</span>
-              </h2>
-            </div>
-            <input
-              type="text"
-              {...register('contactNumber', { required: 'Contact phone number is required' })}
-              placeholder="e.g. +1 (555) 019-2834"
-              className={errors.contactNumber ? errorFieldCls : fieldCls}
-            />
-            {errors.contactNumber && <p className="mt-1.5 text-xs font-semibold text-red-500">{errors.contactNumber.message}</p>}
-          </div>
-
-          {/* Section 5: Reward */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-              <Gift size={18} className="text-blue-600" />
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">
-                5. Reward Offer <span className="text-red-500">*</span>
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Offer a reward to incentivize finders. This can be negotiated later.</p>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">₹</span>
-              <input
-                type="number"
-                min="1"
-                {...register('rewardAmount', { 
-                  required: 'Reward amount is required',
-                  min: { value: 1, message: 'Reward must be at least ₹1' }
-                })}
-                placeholder="e.g. 500"
-                className={`${errors.rewardAmount ? errorFieldCls : fieldCls} pl-8`}
-              />
-            </div>
-            {errors.rewardAmount && <p className="mt-1.5 text-xs font-semibold text-red-500">{errors.rewardAmount.message}</p>}
-          </div>
-
-          {/* Submit Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800 pt-6">
-            <button
-              type="button"
-              onClick={() => navigate('/lost-items')}
-              className="rounded-2xl px-5 py-3 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-            >
-              Cancel
-            </button>
+          {/* Submit CTA */}
+          <div className="flex justify-end pt-4 border-t" style={{ borderColor: 'var(--glass-border)' }}>
             <button
               type="submit"
               disabled={submitMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-7 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-700 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.3)] disabled:opacity-50"
+              className="dash-btn-primary py-3 px-8 text-sm font-bold shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}
             >
               <Save size={16} />
-              {submitMutation.isPending ? 'Publishing...' : isEdit ? 'Update Report' : 'Publish Report'}
+              <span>{submitMutation.isPending ? 'Submitting...' : isEdit ? 'Update Report' : 'Publish Lost Report'}</span>
             </button>
           </div>
         </form>

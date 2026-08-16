@@ -15,20 +15,18 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, icon, className = '', ...props }, ref) => {
     return (
-      <div className="w-full mb-5 text-left">
-        <label className="mb-2 block text-sm font-bold text-slate-800 dark:text-slate-200">{label}</label>
+      <div className="w-full mb-4 text-left">
+        <label className="mb-1.5 block text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{label}</label>
         <div className="relative">
           {icon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 dark:text-slate-400">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5" style={{ color: 'var(--dash-text-muted)' }}>
               {icon}
             </div>
           )}
           <input
             ref={ref}
-            className={`w-full rounded-2xl border px-4 py-3 text-sm font-medium outline-none transition-all duration-200 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 ${icon ? 'pl-11' : 'pl-4'} ${
-              error
-                ? 'border-red-400 focus:border-red-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.15)]'
-                : 'border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]'
+            className={`glass-input w-full h-11 px-4 text-xs font-medium outline-none transition-all duration-200 ${icon ? 'pl-10' : 'pl-3.5'} ${
+              error ? 'border-rose-500' : ''
             } ${className}`}
             {...props}
           />
@@ -37,7 +35,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <motion.p
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-1.5 text-sm font-semibold text-red-600 dark:text-red-400"
+            className="mt-1 text-xs font-bold text-rose-500"
           >
             {error}
           </motion.p>
@@ -60,13 +58,14 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
     const [show, setShow] = useState(false);
 
     return (
-      <div className="w-full mb-5 text-left">
-        <div className="mb-2 flex items-center justify-between">
-          <label className="block text-sm font-bold text-slate-800 dark:text-slate-200">{label}</label>
+      <div className="w-full mb-4 text-left">
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="block text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{label}</label>
           {showForgotPassword && (
             <a
               href="/forgot-password"
-              className="text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              className="text-xs font-bold transition-colors hover:underline"
+              style={{ color: 'var(--dash-accent)' }}
             >
               Forgot Password?
             </a>
@@ -74,34 +73,33 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
         </div>
         <div className="relative">
           {icon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500 dark:text-slate-400">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5" style={{ color: 'var(--dash-text-muted)' }}>
               {icon}
             </div>
           )}
           <input
             ref={ref}
             type={show ? 'text' : 'password'}
-            className={`w-full rounded-2xl border px-4 py-3 text-sm font-medium outline-none transition-all duration-200 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 ${icon ? 'pl-11' : 'pl-4'} pr-11 ${
-              error
-                ? 'border-red-400 focus:border-red-500 focus:shadow-[0_0_0_4px_rgba(239,68,68,0.15)]'
-                : 'border-slate-300 dark:border-slate-600 focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]'
+            className={`glass-input w-full h-11 px-4 text-xs font-medium outline-none transition-all duration-200 ${icon ? 'pl-10' : 'pl-3.5'} pr-10 ${
+              error ? 'border-rose-500' : ''
             } ${className}`}
             {...props}
           />
           <button
             type="button"
             onClick={() => setShow(!show)}
-            className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-500 dark:text-slate-400 transition hover:text-slate-900 dark:hover:text-slate-100 focus:outline-none"
+            className="absolute inset-y-0 right-0 flex items-center pr-3.5 transition focus:outline-none"
+            style={{ color: 'var(--dash-text-muted)' }}
             aria-label={show ? 'Hide password' : 'Show password'}
           >
-            {show ? <EyeOff size={18} /> : <Eye size={18} />}
+            {show ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
         {error && (
           <motion.p
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-1.5 text-sm font-semibold text-red-600 dark:text-red-400"
+            className="mt-1 text-xs font-bold text-rose-500"
           >
             {error}
           </motion.p>
@@ -135,16 +133,16 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthProps> = ({ passwor
     switch (str) {
       case 0:
       case 1:
-        return { label: 'Weak', color: 'bg-red-500' };
+        return { label: 'Weak', color: 'bg-rose-500' };
       case 2:
         return { label: 'Fair', color: 'bg-orange-500' };
       case 3:
-        return { label: 'Good', color: 'bg-yellow-500' };
+        return { label: 'Good', color: 'bg-amber-500' };
       case 4:
       case 5:
         return { label: 'Strong', color: 'bg-emerald-500' };
       default:
-        return { label: 'Weak', color: 'bg-red-500' };
+        return { label: 'Weak', color: 'bg-rose-500' };
     }
   };
 
@@ -161,8 +159,8 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthProps> = ({ passwor
   return (
     <div className="mt-2 mb-4 text-left">
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Password Strength</span>
-        <span className="text-xs font-bold text-slate-900 dark:text-white">{label}</span>
+        <span className="text-[11px] font-bold" style={{ color: 'var(--dash-text-muted)' }}>Password Strength</span>
+        <span className="text-[11px] font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>{label}</span>
       </div>
       <div className="mb-2.5 flex h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
         {[1, 2, 3, 4, 5].map((idx) => (
@@ -170,24 +168,25 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthProps> = ({ passwor
             key={idx}
             className={`flex-1 transition-all duration-300 ${
               idx <= strength ? color : 'bg-transparent'
-            } border-r border-white last:border-0`}
+            } border-r border-white/20 last:border-0`}
           />
         ))}
       </div>
       <ul className="space-y-1">
         {requirements.map((req, index) => (
-          <li key={index} className="flex items-center gap-2 text-xs">
+          <li key={index} className="flex items-center gap-2 text-[11px]">
             <span
               className={`h-1.5 w-1.5 rounded-full flex-shrink-0 transition-colors ${
-                req.met ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'
+                req.met ? 'bg-emerald-500' : 'bg-slate-400'
               }`}
             />
             <span
               className={`transition-colors ${
                 req.met
-                  ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-300'
-                  : 'text-slate-600 dark:text-slate-400'
+                  ? 'text-slate-400 line-through decoration-slate-300'
+                  : ''
               }`}
+              style={{ color: req.met ? undefined : 'var(--dash-text-secondary)' }}
             >
               {req.label}
             </span>
@@ -207,7 +206,7 @@ export const Button: React.FC<ButtonProps> = ({ children, loading, className = '
     <motion.button
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
-      className={`cc-button-primary flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`dash-btn-primary flex w-full items-center justify-center gap-2 py-3 px-5 text-xs font-bold text-white shadow-md disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       disabled={loading || props.disabled}
       {...props}
     >
@@ -248,7 +247,7 @@ export const OAuthButton: React.FC<OAuthButtonProps> = ({
   const innerContent = (
     <>
       {loading ? (
-        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+        <svg className="animate-spin h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path
             className="opacity-75"
@@ -280,11 +279,11 @@ export const OAuthButton: React.FC<OAuthButtonProps> = ({
           <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4c-1.09-.5-2.08-.48-3.24 0c-1.44.62-2.2.44-3.06-.4C4.7 17.2 4.12 11.75 6.64 8.04c1.23-1.8 2.92-1.92 3.86-1.92c1.33.02 2.3.62 3.12.58c.84-.04 1.7-.58 3.22-.44c1.55.15 2.76.76 3.4 1.84c-3.12 1.8-2.6 5.86.5 7.12c-.75 1.94-1.6 3.08-3.69 5.06M15.4 3.02c.9-1.12.78-2.6-.32-3.52c-1.15-1-2.58-.66-3.4.15c-.9 1.1-.75 2.74.34 3.52c1.1.8 2.6.48 3.38-.15" />
         </svg>
       )}
-      {loading ? 'Connecting...' : `Continue with ${isGoogle ? 'Google' : 'Apple'}`}
+      <span>{loading ? 'Connecting...' : `Continue with ${isGoogle ? 'Google' : 'Apple'}`}</span>
     </>
   );
 
-  const baseClass = `flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50 ${className}`;
+  const baseClass = `dash-btn-secondary flex w-full items-center justify-center gap-2.5 py-3 text-xs font-bold shadow-xs transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${className}`;
 
   const handleDirectGoogleRedirect = () => {
     const apiOrigin = getApiOrigin();
@@ -295,8 +294,7 @@ export const OAuthButton: React.FC<OAuthButtonProps> = ({
   if (isGoogle && onGoogleSuccess && googleClientId) {
     return (
       <div className="w-full space-y-2">
-        {/* Official Google Identity Services Login Component */}
-        <div className="flex w-full items-center justify-center overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-1 transition hover:border-blue-300">
+        <div className="glass-panel flex w-full items-center justify-center overflow-hidden p-1">
           <GoogleLogin
             onSuccess={(credentialResponse) => {
               console.log('[Google GIS Success] Credential received:', !!credentialResponse.credential);
@@ -318,11 +316,11 @@ export const OAuthButton: React.FC<OAuthButtonProps> = ({
           />
         </div>
 
-        {/* Alternative direct Passport redirect trigger if popup/GIS is blocked */}
         <button
           type="button"
           onClick={handleDirectGoogleRedirect}
-          className="w-full py-1 text-center text-sm font-medium text-blue-600 dark:text-blue-400 underline transition hover:text-blue-700 dark:hover:text-blue-300"
+          className="w-full py-1 text-center text-xs font-bold underline transition"
+          style={{ color: 'var(--dash-accent)' }}
         >
           Having trouble? Sign in via Google Browser Redirect
         </button>
@@ -359,7 +357,7 @@ export const AuthCard: React.FC<{ children: React.ReactNode }> = ({ children }) 
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="w-full max-w-[460px] rounded-[1.75rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-8 text-center shadow-[0_24px_90px_rgba(15,23,42,0.14)] dark:shadow-[0_24px_90px_rgba(0,0,0,0.5)]"
+      className="glass-panel w-full max-w-[460px] p-7 sm:p-8 text-center shadow-2xl"
     >
       {children}
     </motion.div>

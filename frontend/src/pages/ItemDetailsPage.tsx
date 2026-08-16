@@ -11,12 +11,14 @@ import {
   CheckCircle2,
   Maximize2,
   X,
+  Edit,
+  Gift,
 } from 'lucide-react';
 import { chatsApi, foundItemsApi, lostItemsApi, matchesApi, type LostItemType, type FoundItemType, type MatchType } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import PageTransition from '../components/PageTransition';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { AvatarBadge, PortalBadge, PortalCard, PortalProgress, getPrimaryImage, formatCampusDate, getStatusTone } from '../components/portal';
+import { AvatarBadge, PortalBadge, PortalProgress, getPrimaryImage, formatCampusDate, getStatusTone } from '../components/portal';
 
 type ItemDetailsPageProps = {
   type: 'lost' | 'found';
@@ -55,7 +57,7 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
         setItem(fetchedItem);
         setMatches(itemMatches);
 
-        const primary = getPrimaryImage(fetchedItem) || fetchedItem.images?.find(Boolean) || '/campus_hero_bg.png';
+        const primary = getPrimaryImage(fetchedItem) || fetchedItem.images?.find(Boolean) || '';
         setSelectedImage(primary);
       } catch {
         toast.error('Failed to load item details.');
@@ -116,7 +118,7 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
 
   if (!item) {
     return (
-      <div className="py-20 text-center text-slate-500 dark:text-slate-300">
+      <div className="glass-panel py-20 text-center" style={{ color: 'var(--dash-text-muted)' }}>
         Item report not found.
       </div>
     );
@@ -126,9 +128,10 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
   const locationLabel = isLost ? (item as LostItemType).lostLocation : (item as FoundItemType).foundLocation;
   const dateLabel = isLost ? (item as LostItemType).lostDate : (item as FoundItemType).foundDate;
   const itemRoute = isLost ? `/lost-items/edit/${item._id}` : `/found-items/edit/${item._id}`;
+  const rewardAmount = (item as any).rewardAmount;
 
   return (
-    <PageTransition className="mx-auto max-w-7xl space-y-8 py-6 pb-20 px-4 sm:px-6">
+    <PageTransition className="mx-auto max-w-6xl space-y-6 py-4 pb-20 px-2 sm:px-4">
       {/* Lightbox Modal */}
       {lightboxOpen && (
         <div
@@ -138,9 +141,9 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
           <button
             type="button"
             onClick={() => setLightboxOpen(false)}
-            className="absolute right-6 top-6 flex h-12 w-12 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md hover:bg-white/30"
+            className="absolute right-6 top-6 flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-md hover:bg-white/30 transition"
           >
-            <X size={24} />
+            <X size={22} />
           </button>
           <img
             src={selectedImage}
@@ -153,40 +156,46 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
       {/* Navigation Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          to="/dashboard"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 transition hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+          to={isLost ? '/lost-items' : '/found-items'}
+          className="dash-btn-secondary inline-flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold"
         >
-          <ArrowLeft size={16} /> Back to Dashboard
+          <ArrowLeft size={14} /> Back to Catalog
         </Link>
 
         {isOwner && (
           <Link
             to={itemRoute}
-            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-xs transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+            className="dash-btn-secondary inline-flex items-center gap-1.5 py-1.5 px-3.5 text-xs font-bold"
           >
-            Edit Report
+            <Edit size={13} /> Edit Report
           </Link>
         )}
       </div>
 
-      {/* Main Grid */}
-      <section className="grid gap-8 lg:grid-cols-12">
-        {/* Left Column: Image Gallery & Lightbox */}
+      {/* Main Details Grid */}
+      <section className="grid gap-6 lg:grid-cols-12">
+        {/* Left Column: Image Media Viewer */}
         <div className="lg:col-span-6 space-y-4">
-          <PortalCard className="relative overflow-hidden p-3">
-            <div className="group relative aspect-4/3 overflow-hidden rounded-2xl bg-slate-950">
-              <img
-                src={selectedImage}
-                alt={item.itemName}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <button
-                type="button"
-                onClick={() => setLightboxOpen(true)}
-                className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950/70 text-white backdrop-blur-md opacity-0 transition group-hover:opacity-100"
-              >
-                <Maximize2 size={16} />
-              </button>
+          <div className="glass-panel overflow-hidden p-3.5">
+            <div className="group relative aspect-4/3 overflow-hidden rounded-2xl bg-slate-950/80 flex items-center justify-center">
+              {selectedImage ? (
+                <img
+                  src={selectedImage}
+                  alt={item.itemName}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <div className="text-slate-400 text-xs font-semibold">No photo attached</div>
+              )}
+              {selectedImage && (
+                <button
+                  type="button"
+                  onClick={() => setLightboxOpen(true)}
+                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950/70 text-white backdrop-blur-md opacity-0 transition group-hover:opacity-100"
+                >
+                  <Maximize2 size={15} />
+                </button>
+              )}
             </div>
 
             {/* Thumbnail Strip */}
@@ -199,8 +208,8 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
                     onClick={() => setSelectedImage(img)}
                     className={`aspect-square overflow-hidden rounded-xl border-2 transition ${
                       selectedImage === img
-                        ? 'border-blue-600 ring-2 ring-blue-600/20'
-                        : 'border-slate-200 opacity-70 hover:opacity-100 dark:border-slate-800'
+                        ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                        : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   >
                     <img src={img} alt={item.itemName} className="h-full w-full object-cover" />
@@ -208,44 +217,53 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
                 ))}
               </div>
             )}
-          </PortalCard>
+          </div>
         </div>
 
         {/* Right Column: Item Information & Actions */}
         <div className="lg:col-span-6 space-y-6">
-          <PortalCard className="p-6 sm:p-8">
+          <div className="glass-panel p-6 sm:p-7 space-y-5">
             <div className="flex flex-wrap items-center gap-2">
               <PortalBadge tone={statusTone}>{item.status}</PortalBadge>
               <PortalBadge tone={isLost ? 'danger' : 'success'}>
                 {isLost ? 'Lost Item' : 'Found Item'}
               </PortalBadge>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
                 {item.category}
               </span>
             </div>
 
-            <h1 className="mt-4 text-2xl font-extrabold text-slate-900 dark:text-white sm:text-3xl">
-              {item.itemName}
-            </h1>
-            <p className="mt-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-              {item.description}
-            </p>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+                {item.itemName}
+              </h1>
+              <p className="mt-2.5 text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+                {item.description}
+              </p>
+            </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-900/60">
-                <div className="flex items-center gap-1.5 text-slate-400">
+            {rewardAmount && rewardAmount > 0 && (
+              <div className="flex items-center gap-2 rounded-xl p-3 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                <Gift size={16} className="shrink-0" />
+                <span className="text-xs font-bold">Reward Offered: ₹{rewardAmount}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl p-3" style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)' }}>
+                <div className="flex items-center gap-1.5 text-indigo-500">
                   <MapPinned size={14} />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Location</span>
                 </div>
-                <p className="mt-1 text-xs font-bold text-slate-900 dark:text-white">{locationLabel}</p>
+                <p className="mt-1 text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{locationLabel}</p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-900/60">
-                <div className="flex items-center gap-1.5 text-slate-400">
+              <div className="rounded-xl p-3" style={{ background: 'rgba(99,102,241,0.04)', border: '1px solid rgba(99,102,241,0.1)' }}>
+                <div className="flex items-center gap-1.5 text-rose-500">
                   <Calendar size={14} />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Date</span>
                 </div>
-                <p className="mt-1 text-xs font-bold text-slate-900 dark:text-white">
+                <p className="mt-1 text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>
                   {formatCampusDate(dateLabel)}
                 </p>
               </div>
@@ -253,38 +271,38 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
 
             {/* AI Match Badge */}
             {activeMatch && (
-              <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50/80 p-4 dark:border-blue-900/40 dark:bg-blue-950/30">
+              <div className="rounded-xl p-4" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                    <span className="text-[10.5px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                       AI Similarity Score
                     </span>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                    <p className="text-xs font-bold mt-0.5" style={{ color: 'var(--dash-text-primary)' }}>
                       Status: {activeMatch.matchStatus}
                     </p>
                   </div>
-                  <PortalBadge tone="primary">
-                    <Sparkles size={12} />
+                  <span className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white">
+                    <Sparkles size={11} className="inline mr-1" />
                     {activeMatch.matchPercentage}% match
-                  </PortalBadge>
+                  </span>
                 </div>
-                <div className="mt-3">
+                <div className="mt-2.5">
                   <PortalProgress value={activeMatch.matchPercentage} tone="primary" />
                 </div>
               </div>
             )}
 
             {/* Action CTAs */}
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 pt-2">
               {canContact && (
                 <button
                   type="button"
                   onClick={handleContactOwner}
                   disabled={contactLoading}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-blue-500/25 transition hover:scale-[1.02] disabled:opacity-50"
+                  className="dash-btn-primary py-2.5 px-6 text-xs font-bold shadow-md disabled:opacity-50"
                 >
-                  <MessageSquare size={16} />
-                  {contactLoading ? 'Opening Chat...' : 'Contact Owner'}
+                  <MessageSquare size={14} />
+                  {contactLoading ? 'Opening Chat...' : 'Contact Reporter'}
                 </button>
               )}
               {isOwner && item.status !== 'Returned' && (
@@ -292,38 +310,39 @@ export default function ItemDetailsPage({ type }: ItemDetailsPageProps) {
                   type="button"
                   onClick={handleMarkReturned}
                   disabled={returnLoading}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-3 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300"
+                  className="dash-btn-secondary inline-flex items-center gap-1.5 py-2.5 px-5 text-xs font-bold disabled:opacity-50"
+                  style={{ color: '#059669', borderColor: 'rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.08)' }}
                 >
-                  <CheckCircle2 size={16} />
+                  <CheckCircle2 size={14} />
                   {returnLoading ? 'Updating...' : 'Mark as Returned'}
                 </button>
               )}
             </div>
-          </PortalCard>
+          </div>
 
-          {/* Owner Card */}
-          <PortalCard className="p-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+          {/* Reporter Profile Box */}
+          <div className="glass-panel p-5">
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
                   Reported By
                 </span>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Campus Contact</h3>
+                <h3 className="text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>Campus Member</h3>
               </div>
               <PortalBadge tone={isOwner ? 'primary' : 'accent'}>
-                <UserRound size={12} />
-                {isOwner ? 'Your Post' : 'Verified Member'}
+                <UserRound size={11} />
+                {isOwner ? 'Your Post' : 'Verified Student'}
               </PortalBadge>
             </div>
 
-            <div className="mt-4 flex items-center gap-4">
-              <AvatarBadge name={item.postedBy.name} avatar={item.postedBy.avatar} size="lg" />
+            <div className="mt-3.5 flex items-center gap-3.5">
+              <AvatarBadge name={item.postedBy.name} avatar={item.postedBy.avatar} size="md" />
               <div>
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white">{item.postedBy.name}</h4>
-                <p className="text-xs text-slate-500">{item.postedBy.email}</p>
+                <h4 className="text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{item.postedBy.name}</h4>
+                <p className="text-[11px]" style={{ color: 'var(--dash-text-muted)' }}>{item.postedBy.email}</p>
               </div>
             </div>
-          </PortalCard>
+          </div>
         </div>
       </section>
     </PageTransition>

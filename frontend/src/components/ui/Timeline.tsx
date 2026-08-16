@@ -18,7 +18,7 @@ export function Timeline({ items }: TimelineProps) {
   if (!items || items.length === 0) {
     return (
       <EmptyState
-        title="No recent activity yet"
+        title="No recent activity"
         description="Activity will appear here when items are reported or updated."
         action={
           <Link

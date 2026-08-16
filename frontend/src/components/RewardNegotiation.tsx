@@ -3,7 +3,6 @@ import { toast } from 'react-hot-toast';
 import { Edit2, CheckCircle2, XCircle } from 'lucide-react';
 import { rewardService } from '../services/rewardService';
 
-
 interface RewardNegotiationProps {
   matchId: string;
   initialAmount: number;
@@ -70,82 +69,89 @@ export const RewardNegotiation: React.FC<RewardNegotiationProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="glass-panel p-5 sm:p-6 space-y-4" style={{ background: 'rgba(99,102,241,0.05)', borderColor: 'rgba(99,102,241,0.2)' }}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-sm font-bold text-blue-950">Reward Offer</h3>
-          <p className="text-xs text-blue-700 mt-1">
-            {isLocked ? 'The reward amount is locked.' : isOwner ? 'You can edit the reward before it is accepted.' : 'Please accept or decline the owner\'s reward offer.'}
+          <h3 className="text-sm font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Reward Offer</h3>
+          <p className="text-xs mt-1" style={{ color: 'var(--dash-text-secondary)' }}>
+            {isLocked ? 'The reward amount is confirmed and locked.' : isOwner ? 'You can adjust the reward offer before it is confirmed.' : 'Please accept or decline the owner\'s reward offer.'}
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           {isEditing ? (
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold">₹</span>
+              <span className="text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>₹</span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
-                className="w-24 rounded-lg border border-slate-300 px-3 py-1 text-sm font-bold outline-none focus:border-blue-500"
+                className="glass-input h-9 w-28 px-2 text-sm font-bold"
               />
             </div>
           ) : (
-            <div className="text-2xl font-black text-blue-900">₹{initialAmount}</div>
+            <div className="text-2xl font-black" style={{ color: 'var(--dash-text-primary)' }}>₹{initialAmount}</div>
           )}
-          <div className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isLocked ? 'text-emerald-600' : rewardStatus === 'Rejected' ? 'text-red-600' : 'text-amber-600'}`}>
+          <div className={`text-[10.5px] font-extrabold uppercase tracking-wider mt-1 ${isLocked ? 'text-emerald-600' : rewardStatus === 'Rejected' ? 'text-rose-600' : 'text-amber-500'}`}>
             Status: {rewardStatus}
           </div>
         </div>
       </div>
 
-      {!isLocked && (
-        <div className="flex justify-end gap-3 pt-2">
-          {isOwner ? (
-            isEditing ? (
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t" style={{ borderColor: 'var(--glass-border)' }}>
+        {isOwner && !isLocked && (
+          <>
+            {isEditing ? (
               <>
                 <button
-                  onClick={() => { setIsEditing(false); setAmount(initialAmount); }}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 transition"
                   disabled={loading}
+                  onClick={handleUpdate}
+                  className="dash-btn-primary py-2 px-4 text-xs font-bold shadow-md"
                 >
-                  Cancel
+                  Save Amount
                 </button>
                 <button
-                  onClick={handleUpdate}
-                  className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition disabled:opacity-50"
                   disabled={loading}
+                  onClick={() => {
+                    setAmount(initialAmount);
+                    setIsEditing(false);
+                  }}
+                  className="dash-btn-secondary py-2 px-4 text-xs font-bold"
                 >
-                  Save Reward
+                  Cancel
                 </button>
               </>
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-4 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 transition"
+                className="dash-btn-secondary py-2 px-4 text-xs font-bold flex items-center gap-1.5"
               >
-                <Edit2 size={14} /> Edit Offer
+                <Edit2 size={13} /> Edit Offer
               </button>
-            )
-          ) : (
-            <>
-              <button
-                onClick={handleDecline}
-                className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-50 transition disabled:opacity-50"
-                disabled={loading}
-              >
-                <XCircle size={14} /> Decline
-              </button>
-              <button
-                onClick={handleAccept}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition disabled:opacity-50"
-                disabled={loading}
-              >
-                <CheckCircle2 size={14} /> Accept Reward
-              </button>
-            </>
-          )}
-        </div>
-      )}
+            )}
+          </>
+        )}
+
+        {!isOwner && !isLocked && (
+          <>
+            <button
+              disabled={loading}
+              onClick={handleAccept}
+              className="dash-btn-primary py-2 px-4 text-xs font-bold shadow-md"
+              style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+            >
+              <CheckCircle2 size={14} /> Accept Offer
+            </button>
+            <button
+              disabled={loading}
+              onClick={handleDecline}
+              className="dash-btn-secondary py-2 px-4 text-xs font-bold"
+              style={{ color: '#e11d48', borderColor: 'rgba(244,63,94,0.3)' }}
+            >
+              <XCircle size={14} /> Decline Offer
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Users, FileText, Sparkles, CreditCard, DollarSign, CheckCircle2, MessageSquare, Ban, Trash2 } from 'lucide-react';
+import { Users, FileText, Sparkles, CreditCard, DollarSign, CheckCircle2, MessageSquare, Ban, Trash2, Shield } from 'lucide-react';
 import { adminApi, type UserType } from '../lib/api';
 import PageTransition from '../components/PageTransition';
 import LoadingSpinner from '../components/LoadingSpinner';
-import EmptyState from '../components/EmptyState';
-import { PortalBadge, PortalCard, PortalSection, PortalStatCard } from '../components/portal';
+import EmptyState from '../components/ui/EmptyState';
+import { PortalBadge, PortalStatCard } from '../components/portal';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'matches' | 'payments'>('users');
@@ -59,14 +59,14 @@ export default function AdminPage() {
 
   const statCards = useMemo(
     () => [
-      { name: 'Users', value: analytics?.totalUsers ?? 0, icon: Users, tone: 'primary' as const },
-      { name: 'Lost items', value: analytics?.totalLostItems ?? 0, icon: FileText, tone: 'danger' as const },
-      { name: 'Found items', value: analytics?.totalFoundItems ?? 0, icon: FileText, tone: 'success' as const },
-      { name: 'Returned', value: analytics?.returnedItems ?? 0, icon: CheckCircle2, tone: 'accent' as const },
-      { name: 'Matches', value: analytics?.totalMatches ?? 0, icon: Sparkles, tone: 'primary' as const },
-      { name: 'Chats', value: analytics?.activeChats ?? 0, icon: MessageSquare, tone: 'warning' as const },
-      { name: 'Payments', value: analytics?.completedPayments ?? 0, icon: CreditCard, tone: 'success' as const },
-      { name: 'Revenue', value: `₹${(analytics?.totalRevenue ?? 0).toLocaleString()}`, icon: DollarSign, tone: 'primary' as const },
+      { name: 'Total Users', value: analytics?.totalUsers ?? 0, icon: Users, tone: 'primary' as const },
+      { name: 'Lost Items', value: analytics?.totalLostItems ?? 0, icon: FileText, tone: 'danger' as const },
+      { name: 'Found Items', value: analytics?.totalFoundItems ?? 0, icon: FileText, tone: 'success' as const },
+      { name: 'Returned Safely', value: analytics?.returnedItems ?? 0, icon: CheckCircle2, tone: 'accent' as const },
+      { name: 'AI Matches', value: analytics?.totalMatches ?? 0, icon: Sparkles, tone: 'primary' as const },
+      { name: 'Active Chats', value: analytics?.activeChats ?? 0, icon: MessageSquare, tone: 'warning' as const },
+      { name: 'Settled Escrows', value: analytics?.completedPayments ?? 0, icon: CreditCard, tone: 'success' as const },
+      { name: 'Total Revenue', value: `₹${(analytics?.totalRevenue ?? 0).toLocaleString()}`, icon: DollarSign, tone: 'primary' as const },
     ],
     [analytics],
   );
@@ -98,14 +98,28 @@ export default function AdminPage() {
   };
 
   return (
-    <PageTransition className="space-y-8 py-4 pb-16">
-      <PortalSection
-        eyebrow="Administration"
-        title="Admin control center"
-        description="Operational analytics, moderation tools, and live reporting data rendered in a modern enterprise console."
-      />
+    <PageTransition className="space-y-6 py-2 pb-24">
+      {/* 1. Hero Glass Banner */}
+      <div className="glass-hero-banner relative p-6 sm:p-8">
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-xs" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                <Shield size={12} /> Administration Portal
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+              Admin Control Center
+            </h1>
+            <p className="max-w-2xl text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+              Operational metrics, user moderation tools, report governance, and escrow settlements.
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* 2. Stat KPIs Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -120,57 +134,57 @@ export default function AdminPage() {
         })}
       </div>
 
-      <PortalCard className="p-4 sm:p-5">
-        <div className="flex flex-wrap gap-2">
-          {(['users', 'reports', 'matches', 'payments'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                activeTab === tab
-                  ? 'bg-blue-600 text-white shadow-[0_12px_24px_rgba(37,99,235,0.24)]'
-                  : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      </PortalCard>
+      {/* 3. Tab Bar Switcher */}
+      <div className="flex flex-wrap gap-2">
+        {(['users', 'reports', 'matches', 'payments'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`glass-tab-pill px-5 py-2 text-xs font-bold uppercase tracking-wider capitalize ${
+              activeTab === tab ? 'active' : ''
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
+      {/* 4. Tab Content Panel */}
       {loading ? (
-        <LoadingSpinner />
+        <div className="flex min-h-[240px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        </div>
       ) : (
-        <PortalCard className="p-6">
+        <div className="glass-panel overflow-hidden">
           {activeTab === 'users' && (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:border-slate-800">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b text-[10.5px] font-bold uppercase tracking-wider" style={{ borderColor: 'var(--glass-border)', color: 'var(--dash-text-muted)', background: 'var(--glass-bg)' }}>
                   <tr>
-                    <th className="py-3 px-4">Name</th>
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Phone</th>
-                    <th className="py-3 px-4">Role</th>
-                    <th className="py-3 px-4 text-right">Action</th>
+                    <th className="py-3.5 px-5">Name</th>
+                    <th className="py-3.5 px-5">Email</th>
+                    <th className="py-3.5 px-5">Phone</th>
+                    <th className="py-3.5 px-5">Role</th>
+                    <th className="py-3.5 px-5 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody className="divide-y" style={{ borderColor: 'var(--glass-border)' }}>
                   {users.map((user) => (
-                    <tr key={user.id} className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60">
-                      <td className="py-4 px-4 font-semibold text-slate-950 dark:text-white">{user.name}</td>
-                      <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{user.email}</td>
-                      <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{user.phone || '—'}</td>
-                      <td className="py-4 px-4">
+                    <tr key={user.id} className="glass-table-row">
+                      <td className="py-3.5 px-5 font-bold" style={{ color: 'var(--dash-text-primary)' }}>{user.name}</td>
+                      <td className="py-3.5 px-5" style={{ color: 'var(--dash-text-secondary)' }}>{user.email}</td>
+                      <td className="py-3.5 px-5" style={{ color: 'var(--dash-text-secondary)' }}>{user.phone || '—'}</td>
+                      <td className="py-3.5 px-5">
                         <PortalBadge tone={user.role === 'admin' ? 'warning' : 'neutral'}>{user.role}</PortalBadge>
                       </td>
-                      <td className="py-4 px-4 text-right">
+                      <td className="py-3.5 px-5 text-right">
                         {user.role !== 'admin' && (
                           <button
                             onClick={() => handleBlockUser(user.id)}
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                            className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                               user.isBlocked
-                                ? 'border-blue-200 bg-blue-50 text-blue-700'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
+                                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 hover:bg-rose-500/20'
                             }`}
                           >
                             <Ban size={12} />
@@ -186,50 +200,48 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'reports' && (
-            <div className="space-y-4">
+            <div className="space-y-4 p-5">
               <div className="flex flex-wrap gap-2">
                 {(['lost', 'found'] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setReportType(type)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                      reportType === type
-                        ? 'bg-blue-600 text-white shadow-[0_12px_24px_rgba(37,99,235,0.24)]'
-                        : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300'
+                    className={`glass-tab-pill px-4 py-1.5 text-xs font-bold capitalize ${
+                      reportType === type ? 'active' : ''
                     }`}
                   >
-                    {type}
+                    {type} Items
                   </button>
                 ))}
               </div>
 
               {reports.length === 0 ? (
-                <EmptyState title="No reports" description="No reports found for the selected category." />
+                <EmptyState title="No reports" description="No reports found for the selected filter." />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:border-slate-800">
+                <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--glass-border)' }}>
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b text-[10.5px] font-bold uppercase tracking-wider" style={{ borderColor: 'var(--glass-border)', color: 'var(--dash-text-muted)', background: 'var(--glass-bg)' }}>
                       <tr>
-                        <th className="py-3 px-4">Item</th>
+                        <th className="py-3 px-4">Item Name</th>
                         <th className="py-3 px-4">Category</th>
-                        <th className="py-3 px-4">Posted by</th>
+                        <th className="py-3 px-4">Posted By</th>
                         <th className="py-3 px-4">Status</th>
                         <th className="py-3 px-4 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    <tbody className="divide-y" style={{ borderColor: 'var(--glass-border)' }}>
                       {reports.map((report) => (
-                        <tr key={report._id} className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60">
-                          <td className="py-4 px-4 font-semibold text-slate-950 dark:text-white">{report.itemName}</td>
-                          <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{report.category}</td>
-                          <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{report.postedBy?.name || '—'}</td>
-                          <td className="py-4 px-4">
+                        <tr key={report._id} className="glass-table-row">
+                          <td className="py-3 px-4 font-bold" style={{ color: 'var(--dash-text-primary)' }}>{report.itemName}</td>
+                          <td className="py-3 px-4" style={{ color: 'var(--dash-text-secondary)' }}>{report.category}</td>
+                          <td className="py-3 px-4" style={{ color: 'var(--dash-text-secondary)' }}>{report.postedBy?.name || '—'}</td>
+                          <td className="py-3 px-4">
                             <PortalBadge tone={report.status === 'Returned' ? 'success' : 'warning'}>{report.status}</PortalBadge>
                           </td>
-                          <td className="py-4 px-4 text-right">
+                          <td className="py-3 px-4 text-right">
                             <button
                               onClick={() => handleDeleteReport(report._id)}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-900/30 dark:bg-red-950/30"
+                              className="inline-flex items-center gap-1 rounded-xl bg-rose-500/10 text-rose-600 border border-rose-500/20 px-3 py-1 text-xs font-bold hover:bg-rose-500/20 transition"
                             >
                               <Trash2 size={12} />
                               Delete
@@ -245,27 +257,27 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'matches' && (
-            <div className="space-y-4">
+            <div className="p-5">
               {matches.length === 0 ? (
                 <EmptyState title="No matches" description="Matching events will appear here." />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:border-slate-800">
+                <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--glass-border)' }}>
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b text-[10.5px] font-bold uppercase tracking-wider" style={{ borderColor: 'var(--glass-border)', color: 'var(--dash-text-muted)', background: 'var(--glass-bg)' }}>
                       <tr>
-                        <th className="py-3 px-4">Lost item</th>
-                        <th className="py-3 px-4">Found item</th>
-                        <th className="py-3 px-4">Confidence</th>
+                        <th className="py-3 px-4">Lost Item</th>
+                        <th className="py-3 px-4">Found Item</th>
+                        <th className="py-3 px-4">AI Score</th>
                         <th className="py-3 px-4">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    <tbody className="divide-y" style={{ borderColor: 'var(--glass-border)' }}>
                       {matches.map((match) => (
-                        <tr key={match._id} className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60">
-                          <td className="py-4 px-4 font-semibold text-slate-950 dark:text-white">{match.lostItemId?.itemName || '—'}</td>
-                          <td className="py-4 px-4 font-semibold text-slate-950 dark:text-white">{match.foundItemId?.itemName || '—'}</td>
-                          <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{match.matchPercentage}%</td>
-                          <td className="py-4 px-4">
+                        <tr key={match._id} className="glass-table-row">
+                          <td className="py-3 px-4 font-bold" style={{ color: 'var(--dash-text-primary)' }}>{match.lostItemId?.itemName || '—'}</td>
+                          <td className="py-3 px-4 font-bold" style={{ color: 'var(--dash-text-primary)' }}>{match.foundItemId?.itemName || '—'}</td>
+                          <td className="py-3 px-4 font-extrabold text-indigo-500">{match.matchPercentage}%</td>
+                          <td className="py-3 px-4">
                             <PortalBadge tone={match.matchStatus === 'HANDOVER_COMPLETED' ? 'success' : 'warning'}>{match.matchStatus}</PortalBadge>
                           </td>
                         </tr>
@@ -278,31 +290,29 @@ export default function AdminPage() {
           )}
 
           {activeTab === 'payments' && (
-            <div className="space-y-4">
+            <div className="p-5">
               {payments.length === 0 ? (
-                <EmptyState title="No payments" description="Verified payouts will appear here." />
+                <EmptyState title="No payments recorded" description="Escrow payments will appear here." />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="border-b border-slate-200 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:border-slate-800">
+                <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--glass-border)' }}>
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b text-[10.5px] font-bold uppercase tracking-wider" style={{ borderColor: 'var(--glass-border)', color: 'var(--dash-text-muted)', background: 'var(--glass-bg)' }}>
                       <tr>
-                        <th className="py-3 px-4">Owner</th>
-                        <th className="py-3 px-4">Finder</th>
+                        <th className="py-3 px-4">Transaction ID</th>
                         <th className="py-3 px-4">Amount</th>
                         <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                      {payments.map((payment) => (
-                        <tr key={payment._id} className="transition hover:bg-slate-50 dark:hover:bg-slate-900/60">
-                          <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{payment.lostUserId?.name || '—'}</td>
-                          <td className="py-4 px-4 text-slate-600 dark:text-slate-300">{payment.foundUserId?.name || '—'}</td>
-                          <td className="py-4 px-4 font-semibold text-slate-950 dark:text-white">₹{payment.amount}</td>
-                          <td className="py-4 px-4">
-                            <PortalBadge tone={['SUCCESS', 'Completed', 'Paid'].includes(payment.paymentStatus || payment.status || '') ? 'success' : 'warning'}>
-                              {payment.status || payment.paymentStatus || 'PENDING'}
-                            </PortalBadge>
+                    <tbody className="divide-y" style={{ borderColor: 'var(--glass-border)' }}>
+                      {payments.map((p) => (
+                        <tr key={p._id} className="glass-table-row">
+                          <td className="py-3 px-4 font-mono font-bold" style={{ color: 'var(--dash-text-primary)' }}>{p.razorpayPaymentId || p._id.slice(-8)}</td>
+                          <td className="py-3 px-4 font-black" style={{ color: 'var(--dash-text-primary)' }}>₹{(p.amount || 0).toLocaleString()}</td>
+                          <td className="py-3 px-4">
+                            <PortalBadge tone={p.paymentStatus === 'PAID' || p.paymentStatus === 'SUCCESS' ? 'success' : 'warning'}>{p.paymentStatus || 'Pending'}</PortalBadge>
                           </td>
+                          <td className="py-3 px-4" style={{ color: 'var(--dash-text-muted)' }}>{new Date(p.createdAt).toLocaleDateString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -311,7 +321,7 @@ export default function AdminPage() {
               )}
             </div>
           )}
-        </PortalCard>
+        </div>
       )}
     </PageTransition>
   );

@@ -16,20 +16,20 @@ export function SectionHeader({
   className = '',
 }: SectionHeaderProps) {
   return (
-    <div className={`flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between ${className}`}>
+    <div className={`flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between ${className}`}>
       <div className="space-y-1">
         {eyebrow && (
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--secondary)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--secondary)]">
             {eyebrow}
           </p>
         )}
         {title && (
-          <h2 className="text-xl font-bold tracking-tight text-[var(--text)] sm:text-2xl">
+          <h2 className="text-2xl font-black tracking-tight text-[var(--text)] sm:text-[2rem]">
             {title}
           </h2>
         )}
         {description && (
-          <p className="max-w-2xl text-xs text-[var(--secondary)] leading-relaxed">
+          <p className="max-w-2xl text-sm text-[var(--secondary)] leading-relaxed">
             {description}
           </p>
         )}

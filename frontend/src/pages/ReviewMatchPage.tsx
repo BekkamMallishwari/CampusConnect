@@ -15,7 +15,6 @@ import {
   Check,
   ChevronLeft,
   TrendingUp,
-  Info,
 } from 'lucide-react';
 import { matchesApi, type MatchType } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -41,47 +40,45 @@ function AcceptanceMeter({
   return (
     <div className="grid grid-cols-2 gap-3">
       <div
-        className={`flex items-center gap-3 rounded-xl border p-4 transition-all ${
-          ownerAccepted
-            ? 'border-emerald-200 bg-emerald-50'
-            : 'border-slate-200 bg-white'
-        }`}
+        className="glass-panel flex items-center gap-3 p-4 transition-all"
+        style={{
+          background: ownerAccepted ? 'rgba(16,185,129,0.08)' : 'var(--glass-bg)',
+          borderColor: ownerAccepted ? 'rgba(16,185,129,0.3)' : 'var(--glass-border)',
+        }}
       >
         <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-all ${
-            ownerAccepted ? 'bg-emerald-500' : 'bg-slate-300'
-          }`}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-all shadow-xs"
+          style={{ background: ownerAccepted ? 'linear-gradient(135deg, #10b981, #059669)' : '#94a3b8' }}
         >
           {ownerAccepted ? <Check size={18} /> : <Clock size={16} />}
         </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">Owner</p>
-          <p className="text-xs font-bold text-[#0F172A] line-clamp-1">{ownerName}</p>
-          <p className={`text-[10px] font-semibold ${ownerAccepted ? 'text-emerald-600' : 'text-amber-600'}`}>
-            {ownerAccepted ? '✅ Accepted' : 'Pending'}
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Owner</p>
+          <p className="text-xs font-bold truncate" style={{ color: 'var(--dash-text-primary)' }}>{ownerName}</p>
+          <p className={`text-[10.5px] font-extrabold ${ownerAccepted ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+            {ownerAccepted ? '✅ Accepted' : 'Pending Review'}
           </p>
         </div>
       </div>
 
       <div
-        className={`flex items-center gap-3 rounded-xl border p-4 transition-all ${
-          finderAccepted
-            ? 'border-emerald-200 bg-emerald-50'
-            : 'border-slate-200 bg-white'
-        }`}
+        className="glass-panel flex items-center gap-3 p-4 transition-all"
+        style={{
+          background: finderAccepted ? 'rgba(16,185,129,0.08)' : 'var(--glass-bg)',
+          borderColor: finderAccepted ? 'rgba(16,185,129,0.3)' : 'var(--glass-border)',
+        }}
       >
         <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-all ${
-            finderAccepted ? 'bg-emerald-500' : 'bg-slate-300'
-          }`}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white transition-all shadow-xs"
+          style={{ background: finderAccepted ? 'linear-gradient(135deg, #10b981, #059669)' : '#94a3b8' }}
         >
           {finderAccepted ? <Check size={18} /> : <Clock size={16} />}
         </div>
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">Finder</p>
-          <p className="text-xs font-bold text-[#0F172A] line-clamp-1">{finderName}</p>
-          <p className={`text-[10px] font-semibold ${finderAccepted ? 'text-emerald-600' : 'text-amber-600'}`}>
-            {finderAccepted ? '✅ Accepted' : 'Pending'}
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Finder</p>
+          <p className="text-xs font-bold truncate" style={{ color: 'var(--dash-text-primary)' }}>{finderName}</p>
+          <p className={`text-[10.5px] font-extrabold ${finderAccepted ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'}`}>
+            {finderAccepted ? '✅ Accepted' : 'Pending Review'}
           </p>
         </div>
       </div>
@@ -104,22 +101,22 @@ function StepPill({
 }) {
   return (
     <div
-      className={`flex flex-col items-center gap-2 flex-1 min-w-0 ${
+      className={`flex flex-col items-center gap-1.5 flex-1 min-w-0 ${
         completed ? 'opacity-100' : current ? 'opacity-100' : 'opacity-40'
       }`}
     >
       <div
-        className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold transition-all ${
+        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black shadow-xs transition-all ${
           completed
-            ? 'border-emerald-500 bg-emerald-500 text-white'
+            ? 'bg-emerald-500 text-white'
             : current
-            ? 'border-[#1E3A8A] bg-[#1E3A8A] text-white animate-pulse'
-            : 'border-slate-300 bg-white text-slate-400'
+            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white animate-pulse'
+            : 'border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-400'
         }`}
       >
-        {completed ? <Check size={16} /> : step}
+        {completed ? <Check size={14} /> : step}
       </div>
-      <p className={`text-center text-[10px] font-semibold ${completed ? 'text-emerald-700' : current ? 'text-[#1E3A8A]' : 'text-slate-400'}`}>
+      <p className={`text-center text-[9.5px] font-bold ${completed ? 'text-emerald-600 dark:text-emerald-400' : current ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
         {label}
       </p>
     </div>
@@ -152,32 +149,33 @@ function ItemCard({
   const isLost = type === 'lost';
   return (
     <div
-      className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-all ${
-        isLost ? 'border-red-100' : 'border-emerald-100'
-      }`}
+      className="glass-panel overflow-hidden transition-all hover:shadow-lg"
+      style={{ borderColor: isLost ? 'rgba(244,63,94,0.25)' : 'rgba(16,185,129,0.25)' }}
     >
       {/* Card Header */}
       <div
-        className={`flex items-center justify-between px-5 py-3 ${
-          isLost ? 'bg-red-50/70' : 'bg-emerald-50/70'
-        }`}
+        className="flex items-center justify-between px-5 py-3 border-b"
+        style={{
+          borderColor: 'var(--glass-border)',
+          background: isLost ? 'rgba(244,63,94,0.06)' : 'rgba(16,185,129,0.06)',
+        }}
       >
         <div className="flex items-center gap-2">
           <span
-            className={`rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-              isLost ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+            className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white shadow-xs ${
+              isLost ? 'bg-rose-500' : 'bg-emerald-500'
             }`}
           >
             {isLost ? 'Lost Item' : 'Found Item'}
           </span>
           {accepted && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <Check size={10} /> Accepted
             </span>
           )}
         </div>
         {reporterName && (
-          <span className="text-[11px] text-[#64748B]">by {reporterName}</span>
+          <span className="text-[11px] font-semibold" style={{ color: 'var(--dash-text-muted)' }}>by {reporterName}</span>
         )}
       </div>
 
@@ -186,46 +184,47 @@ function ItemCard({
         <img
           src={imageUrl}
           alt={itemName}
-          className="h-48 w-full object-cover border-b border-slate-100"
+          className="h-48 w-full object-cover border-b"
+          style={{ borderColor: 'var(--glass-border)' }}
         />
       ) : (
-        <div className={`flex h-36 w-full items-center justify-center border-b border-slate-100 ${isLost ? 'bg-red-50/50' : 'bg-emerald-50/50'}`}>
-          <AlertCircle size={32} className={isLost ? 'text-red-300' : 'text-emerald-300'} />
+        <div className="flex h-36 w-full items-center justify-center border-b bg-slate-100/50 dark:bg-slate-800/50" style={{ borderColor: 'var(--glass-border)' }}>
+          <AlertCircle size={32} className={isLost ? 'text-rose-400' : 'text-emerald-400'} />
         </div>
       )}
 
       {/* Item Details */}
       <div className="space-y-3 p-5">
         <div>
-          <h3 className="text-base font-bold text-[#0F172A]">{itemName}</h3>
+          <h3 className="text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>{itemName}</h3>
           {description && (
-            <p className="mt-1 text-xs leading-relaxed text-[#64748B] line-clamp-3">{description}</p>
+            <p className="mt-1 text-xs leading-relaxed line-clamp-3" style={{ color: 'var(--dash-text-secondary)' }}>{description}</p>
           )}
         </div>
 
-        <div className="space-y-1.5 text-xs text-[#64748B] border-t border-slate-100 pt-3">
+        <div className="space-y-1.5 text-xs border-t pt-3" style={{ borderColor: 'var(--glass-border)' }}>
           {category && (
-            <div className="flex items-center gap-2">
-              <Tag size={13} className="shrink-0 text-[#2563EB]" />
+            <div className="flex items-center gap-2" style={{ color: 'var(--dash-text-secondary)' }}>
+              <Tag size={13} className="shrink-0 text-indigo-500" />
               <span>
-                Category: <strong className="text-[#0F172A]">{category}</strong>
+                Category: <strong style={{ color: 'var(--dash-text-primary)' }}>{category}</strong>
               </span>
             </div>
           )}
           {location && (
-            <div className="flex items-center gap-2">
-              <MapPin size={13} className="shrink-0 text-[#2563EB]" />
+            <div className="flex items-center gap-2" style={{ color: 'var(--dash-text-secondary)' }}>
+              <MapPin size={13} className="shrink-0 text-rose-500" />
               <span>
-                {isLost ? 'Lost at' : 'Found at'}: <strong className="text-[#0F172A]">{location}</strong>
+                {isLost ? 'Lost at' : 'Found at'}: <strong style={{ color: 'var(--dash-text-primary)' }}>{location}</strong>
               </span>
             </div>
           )}
           {date && (
-            <div className="flex items-center gap-2">
-              <Calendar size={13} className="shrink-0 text-[#2563EB]" />
+            <div className="flex items-center gap-2" style={{ color: 'var(--dash-text-secondary)' }}>
+              <Calendar size={13} className="shrink-0 text-indigo-500" />
               <span>
                 {isLost ? 'Lost on' : 'Found on'}:{' '}
-                <strong className="text-[#0F172A]">{new Date(date).toLocaleDateString()}</strong>
+                <strong style={{ color: 'var(--dash-text-primary)' }}>{new Date(date).toLocaleDateString()}</strong>
               </span>
             </div>
           )}
@@ -247,31 +246,33 @@ function RejectModal({
   loading: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="mx-4 w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+        className="glass-panel w-full max-w-md p-6 shadow-2xl space-y-4"
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-50">
-          <XCircle size={24} className="text-red-500" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-500">
+          <XCircle size={24} />
         </div>
-        <h3 className="text-base font-bold text-[#0F172A]">Reject this match?</h3>
-        <p className="mt-1.5 text-sm text-[#64748B]">
-          This will mark the match as rejected and notify the other party. This action cannot be undone.
-        </p>
-        <div className="mt-6 flex gap-3">
+        <div>
+          <h3 className="text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Reject this match?</h3>
+          <p className="mt-1 text-xs sm:text-sm" style={{ color: 'var(--dash-text-secondary)' }}>
+            This will mark the match as rejected and notify the other party. This action cannot be undone.
+          </p>
+        </div>
+        <div className="flex gap-3 pt-2">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-[#64748B] hover:bg-slate-50 transition"
+            className="dash-btn-secondary flex-1 py-2.5 text-xs font-bold"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-bold text-white hover:bg-red-600 transition disabled:opacity-50"
+            className="flex-1 rounded-xl bg-rose-600 py-2.5 text-xs font-bold text-white hover:bg-rose-700 transition disabled:opacity-50 shadow-md"
           >
             {loading ? 'Rejecting…' : 'Yes, Reject Match'}
           </button>
@@ -292,21 +293,6 @@ export default function ReviewMatchPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [respondingMeeting, setRespondingMeeting] = useState(false);
-
-  const handleRespondMeeting = async (action: 'accept' | 'decline') => {
-    if (!match) return;
-    setRespondingMeeting(true);
-    try {
-      const res = await matchesApi.respondMeeting(match._id, { action });
-      setMatch(res.data.match);
-      toast.success(action === 'accept' ? 'Meeting confirmed!' : 'Meeting declined.');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to respond to meeting.');
-    } finally {
-      setRespondingMeeting(false);
-    }
-  };
 
   const fetchMatchDetails = async () => {
     if (!id) return;
@@ -367,13 +353,11 @@ export default function ReviewMatchPage() {
 
   if (!match) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50">
-          <AlertCircle size={32} className="text-red-400" />
-        </div>
-        <h2 className="text-lg font-bold text-[#0F172A]">Match record not found</h2>
-        <Link to="/matches" className="text-sm font-semibold text-[#2563EB] hover:underline">
-          ← Return to matches list
+      <div className="glass-panel py-20 text-center space-y-3">
+        <AlertCircle size={32} className="mx-auto text-rose-500" />
+        <h2 className="text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Match record not found</h2>
+        <Link to="/matches" className="dash-btn-secondary inline-flex py-1.5 px-4 text-xs font-bold">
+          ← Return to Matches
         </Link>
       </div>
     );
@@ -414,46 +398,41 @@ export default function ReviewMatchPage() {
         )}
       </AnimatePresence>
 
-      <PageTransition className="mx-auto max-w-6xl space-y-6 py-2 pb-16">
-        {/* ── Breadcrumb Nav ─────────────────────────────────────── */}
+      <PageTransition className="mx-auto max-w-6xl space-y-6 py-2 pb-20 px-2 sm:px-4">
+        {/* Breadcrumb Nav */}
         <div className="flex items-center justify-between">
           <Link
             to="/matches"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#64748B] hover:text-[#1E3A8A] transition"
+            className="dash-btn-secondary inline-flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold"
           >
-            <ChevronLeft size={16} /> Back to Matches
+            <ChevronLeft size={14} /> Back to Matches
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#64748B]">Match ID</span>
-            <code className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-mono font-bold text-[#0F172A]">
+            <span className="text-xs" style={{ color: 'var(--dash-text-muted)' }}>Match ID</span>
+            <code className="rounded-md px-2 py-0.5 text-[11px] font-mono font-bold" style={{ background: 'rgba(99,102,241,0.08)', color: 'var(--dash-text-primary)' }}>
               #{match._id.slice(-8)}
             </code>
           </div>
         </div>
 
-        {/* ── Page Header Card ────────────────────────────────────── */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          {/* Navy top accent */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-[#1E3A8A] via-[#2563EB] to-cyan-500" />
-
-          <div className="flex flex-col gap-6 p-6 md:flex-row md:items-start md:justify-between">
+        {/* Page Header Glass Card */}
+        <div className="glass-panel p-6 sm:p-7 space-y-5">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                {/* Confidence badge */}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3A8A] px-3 py-1 text-[11px] font-bold text-white">
+                <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold text-white shadow-xs" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
                   <TrendingUp size={12} /> {match.matchPercentage}% AI Confidence
                 </span>
 
-                {/* Status badge */}
                 <span
                   className={`rounded-full px-3 py-1 text-[11px] font-bold border ${
                     isBothAccepted
-                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600'
                       : isRejected
-                      ? 'border-red-200 bg-red-50 text-red-600'
+                      ? 'border-rose-500/30 bg-rose-500/10 text-rose-600'
                       : ownerAccepted || finderAccepted
-                      ? 'border-amber-200 bg-amber-50 text-amber-700'
-                      : 'border-slate-200 bg-slate-50 text-slate-600'
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-600'
+                      : 'border-slate-500/30 bg-slate-500/10 text-slate-600 dark:text-slate-300'
                   }`}
                 >
                   {isBothAccepted
@@ -468,16 +447,16 @@ export default function ReviewMatchPage() {
                 </span>
               </div>
 
-              <h1 className="text-2xl font-black tracking-tight text-[#0F172A]">
-                Review Match Details
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+                Review AI Match Details
               </h1>
-              <p className="text-sm text-[#64748B]">
-                Compare item details and decide whether this match is genuine. Mutual acceptance is required to confirm.
+              <p className="text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+                Compare item features and confirm whether this match is genuine. Mutual acceptance is required to initiate secure coordination.
               </p>
             </div>
 
-            {/* ── Action Controls ───────────────────── */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Action Controls */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               {!isTerminal && (
                 <>
                   {!currentUserAccepted ? (
@@ -485,14 +464,14 @@ export default function ReviewMatchPage() {
                       onClick={handleAcceptMatch}
                       disabled={actionLoading}
                       id={`accept-match-${match._id}`}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A8A] px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-[#2563EB] active:scale-95 transition disabled:opacity-50"
+                      className="dash-btn-primary py-2.5 px-6 text-xs font-bold shadow-md disabled:opacity-50"
                     >
-                      <CheckCircle2 size={16} />
-                      {actionLoading ? 'Accepting…' : 'Accept Match'}
+                      <CheckCircle2 size={15} />
+                      <span>{actionLoading ? 'Accepting…' : 'Accept Match'}</span>
                     </button>
                   ) : (
-                    <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-700">
-                      <Check size={15} /> You Accepted · Awaiting partner
+                    <div className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check size={14} /> You Accepted · Waiting for partner
                     </div>
                   )}
 
@@ -500,21 +479,21 @@ export default function ReviewMatchPage() {
                     onClick={() => setShowRejectModal(true)}
                     disabled={actionLoading}
                     id={`reject-match-${match._id}`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-[#EF4444] hover:bg-red-50 transition disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-100 transition disabled:opacity-50 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-400"
                   >
-                    <XCircle size={15} /> Reject Match
+                    <XCircle size={14} /> Reject Match
                   </button>
                 </>
               )}
 
               {isBothAccepted && (
-                <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-700">
-                  <CheckCircle2 size={16} /> Match Confirmed!
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 size={15} /> Match Confirmed!
                 </span>
               )}
 
               {isRejected && (
-                <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-500">
+                <span className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-xs font-bold text-rose-600">
                   <XCircle size={15} /> Match Rejected
                 </span>
               )}
@@ -522,88 +501,58 @@ export default function ReviewMatchPage() {
           </div>
         </div>
 
-        {/* ── Mutual Acceptance Success Banner ───────────────────── */}
+        {/* Both Parties Accepted Banner */}
         <AnimatePresence>
           {isBothAccepted && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+              className="glass-panel p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.3)' }}
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white">
-                    <CheckCircle2 size={22} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[#0F172A]">Both Parties Have Accepted!</h4>
-                    <p className="text-xs text-[#64748B]">
-                      The match is now confirmed. Proceed to ownership verification to return the item.
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-xs">
+                  <CheckCircle2 size={20} />
                 </div>
-                {match.chatId && (
-                  <Link
-                    to={`/messages/${match.chatId}`}
-                    className="shrink-0 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition text-center"
-                  >
-                    Go to Messages →
-                  </Link>
-                )}
+                <div>
+                  <h4 className="text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>Both Parties Accepted</h4>
+                  <p className="text-xs" style={{ color: 'var(--dash-text-secondary)' }}>
+                    Match confirmed! Proceed with meeting schedule or ownership verification to complete handover.
+                  </p>
+                </div>
               </div>
+              {match.chatId && (
+                <Link
+                  to={`/messages/${match.chatId}`}
+                  className="dash-btn-primary shrink-0 py-2.5 px-5 text-xs font-bold shadow-md"
+                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                >
+                  Go to Messages →
+                </Link>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ── Meeting Request Banner ─────────────────────────────────── */}
-        {match?.meetingStatus === 'PENDING' && isFinder && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-amber-900">Meeting Request Pending</h4>
-              <span className="rounded-md bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900">Response Required</span>
-            </div>
-            <p className="text-xs text-slate-700">
-              Location: <strong>{match.meetingLocation}</strong> | Time: <strong>{match.meetingTime ? new Date(match.meetingTime).toLocaleString() : 'TBD'}</strong>
-            </p>
-            <div className="flex gap-2 pt-1">
-              <button
-                disabled={respondingMeeting}
-                onClick={() => handleRespondMeeting('accept')}
-                className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
-              >
-                {respondingMeeting ? 'Saving...' : 'Accept Meeting'}
-              </button>
-              <button
-                disabled={respondingMeeting}
-                onClick={() => handleRespondMeeting('decline')}
-                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-red-700 transition"
-              >
-                Decline Meeting
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Workflow Status Timeline ────────────────────────────── */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-            Workflow Status
+        {/* Workflow Status Timeline */}
+        <div className="glass-panel p-5 sm:p-6 space-y-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
+            Workflow Steps
           </h3>
           <div className="relative flex items-start gap-0">
             {steps.map((step, idx) => (
               <div key={idx} className="relative flex flex-1 flex-col items-center">
-                {/* Connector lines between steps */}
                 {idx > 0 && (
                   <div
-                    className={`absolute left-0 right-1/2 top-[1.125rem] h-0.5 -translate-y-1/2 ${
-                      steps[idx - 1]?.completed ? 'bg-emerald-400' : 'bg-slate-200'
+                    className={`absolute left-0 right-1/2 top-4 h-0.5 -translate-y-1/2 ${
+                      steps[idx - 1]?.completed ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-slate-700'
                     }`}
                   />
                 )}
                 {idx < steps.length - 1 && (
                   <div
-                    className={`absolute left-1/2 right-0 top-[1.125rem] h-0.5 -translate-y-1/2 ${
-                      step.completed ? 'bg-emerald-400' : 'bg-slate-200'
+                    className={`absolute left-1/2 right-0 top-4 h-0.5 -translate-y-1/2 ${
+                      step.completed ? 'bg-emerald-400' : 'bg-slate-200 dark:bg-slate-700'
                     }`}
                   />
                 )}
@@ -620,62 +569,53 @@ export default function ReviewMatchPage() {
           </div>
         </div>
 
-        {/* ── AI Confidence Card ──────────────────────────────────── */}
-        <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/70 to-white p-6 shadow-sm">
+        {/* AI Confidence Card */}
+        <div className="glass-panel p-5 sm:p-6 space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1E3A8A] text-white">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-xs">
                 <Sparkles size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#0F172A]">AI Similarity Scan</h3>
-                <p className="text-xs text-[#64748B]">Deep visual + textual similarity analysis</p>
+                <h3 className="text-sm font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>AI Similarity Scan</h3>
+                <p className="text-xs" style={{ color: 'var(--dash-text-secondary)' }}>Multimodal visual + semantic attribute comparison</p>
               </div>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-2xl font-black text-[#1E3A8A]">{match.matchPercentage}%</div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">Match Score</p>
+              <div className="text-2xl font-black" style={{ color: 'var(--dash-accent)' }}>{match.matchPercentage}%</div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Score</p>
             </div>
           </div>
 
-          <div className="mt-4 space-y-1.5">
-            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className="mt-2 space-y-1">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-800">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${match.matchPercentage}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6]"
+                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400"
               />
             </div>
-            <div className="flex justify-between text-[11px] font-semibold text-[#64748B]">
+            <div className="flex justify-between text-[10.5px] font-bold" style={{ color: 'var(--dash-text-muted)' }}>
               <span>Low (0%)</span>
-              <span>Medium (50%)</span>
-              <span className="text-[#1E3A8A]">High Match (80%+)</span>
+              <span>Moderate (50%)</span>
+              <span style={{ color: 'var(--dash-accent)' }}>High Match (80%+)</span>
             </div>
           </div>
         </div>
 
-        {/* ── Mutual Acceptance Tracker ───────────────────────────── */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Mutual Acceptance Status</h3>
+        {/* Mutual Acceptance Tracker */}
+        <div className="glass-panel p-5 sm:p-6 space-y-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Mutual Acceptance Status</h3>
           <AcceptanceMeter
             ownerAccepted={ownerAccepted}
             finderAccepted={finderAccepted}
             ownerName={match.lostUserId.name}
             finderName={match.foundUserId.name}
           />
-
-          {/* Both accepted progress indicator */}
-          <div className="flex items-center gap-2">
-            <div className={`h-2 flex-1 rounded-full ${ownerAccepted ? 'bg-emerald-500' : 'bg-slate-200'} transition-all`} />
-            <div className="text-xs font-bold text-[#0F172A]">
-              {ownerAccepted && finderAccepted ? '2/2' : ownerAccepted || finderAccepted ? '1/2' : '0/2'}
-            </div>
-            <div className={`h-2 flex-1 rounded-full ${finderAccepted ? 'bg-emerald-500' : 'bg-slate-200'} transition-all`} />
-          </div>
         </div>
 
-        {/* ── Side-by-Side Item Comparison ───────────────────────── */}
+        {/* Side-by-Side Item Comparison */}
         <div className="grid gap-6 md:grid-cols-2">
           <ItemCard
             type="lost"
@@ -701,22 +641,22 @@ export default function ReviewMatchPage() {
           />
         </div>
 
-        {/* ── Ownership Verification Section ──────────────────────── */}
+        {/* Ownership Verification Section */}
         {isBothAccepted && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-[#1E3A8A]">
+          <div className="glass-panel p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600">
                 <ShieldAlert size={16} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[#0F172A]">Ownership Verification Details</h3>
-                <p className="text-[10px] text-[#64748B]">
-                  Required step to verify item details before marking as returned.
+                <h3 className="text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>Ownership Verification Details</h3>
+                <p className="text-[11px]" style={{ color: 'var(--dash-text-secondary)' }}>
+                  Required verification step to validate unique identifiers before item handover.
                 </p>
               </div>
             </div>
 
-            {/* Owner workflow to submit answers */}
+            {/* Owner form */}
             {isOwner && (
               <div>
                 {match.verificationStatus === 'NONE' || match.verificationStatus === 'VERIFICATION_FAILED' ? (
@@ -744,128 +684,42 @@ export default function ReviewMatchPage() {
                     className="space-y-4"
                   >
                     {match.verificationStatus === 'VERIFICATION_FAILED' && (
-                      <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+                      <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
                         ⚠️ Previous verification attempt was rejected. Please review details and submit again.
                       </div>
                     )}
-                    <p className="text-xs text-[#64748B]">
-                      Please describe your item features to allow the finder to verify:
+                    <p className="text-xs" style={{ color: 'var(--dash-text-secondary)' }}>
+                      Describe key distinguishing features to allow the finder to verify ownership:
                     </p>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {/* Dynamic fields based on category */}
-                      {match.lostItemId.category?.toLowerCase() === 'mobile' && (
-                        <>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Wallpaper Description</label>
-                            <input name="wallpaper" required type="text" placeholder="e.g. Sunset photo" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Lock Screen Details</label>
-                            <input name="lockScreen" required type="text" placeholder="e.g. Digital clock style" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Phone Case</label>
-                            <input name="phoneCase" required type="text" placeholder="e.g. Blue silicone case" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Brand</label>
-                            <input name="brand" required type="text" placeholder="e.g. Samsung / Apple" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">IMEI (Optional)</label>
-                            <input name="imei" type="text" placeholder="IMEI number" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                        </>
-                      )}
-
-                      {match.lostItemId.category?.toLowerCase() === 'laptop' && (
-                        <>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Brand</label>
-                            <input name="brand" required type="text" placeholder="e.g. Asus / Dell" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Sticker Description</label>
-                            <input name="stickers" required type="text" placeholder="e.g. Github sticker on back" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Login Wallpaper</label>
-                            <input name="loginWallpaper" required type="text" placeholder="e.g. Default Windows" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Charger Color</label>
-                            <input name="chargerColor" required type="text" placeholder="e.g. Black with round pin" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                        </>
-                      )}
-
-                      {match.lostItemId.category?.toLowerCase() === 'wallet' && (
-                        <>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Card Names</label>
-                            <input name="cardNames" required type="text" placeholder="e.g. College ID, Metro card" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Cash Approximation</label>
-                            <input name="cashAmount" required type="text" placeholder="e.g. Around 500 Rupees" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Color</label>
-                            <input name="color" required type="text" placeholder="e.g. Brown leather" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                        </>
-                      )}
-
-                      {match.lostItemId.category?.toLowerCase() === 'bag' && (
-                        <>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Brand</label>
-                            <input name="brand" required type="text" placeholder="e.g. Wildcraft / American Tourister" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Contents</label>
-                            <input name="contents" required type="text" placeholder="e.g. Notebooks, water bottle, keys" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Color</label>
-                            <input name="color" required type="text" placeholder="e.g. Navy blue with yellow stripes" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                        </>
-                      )}
-
-                      {/* Generic/Default questions if no match */}
-                      {!['mobile', 'laptop', 'wallet', 'bag'].includes(match.lostItemId.category?.toLowerCase() || '') && (
-                        <>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Brand</label>
-                            <input name="brand" required type="text" placeholder="Brand / Manufacturer" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Color</label>
-                            <input name="color" required type="text" placeholder="Main color" className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="block text-xs font-semibold text-[#0F172A] mb-1">Unique Features / Identifying Marks</label>
-                            <textarea name="uniqueMarks" required rows={2} placeholder="Describe scratches, keychains, stickers, etc." className="w-full rounded-xl border border-slate-200 p-2.5 text-xs outline-none focus:border-[#3B82F6] transition" />
-                          </div>
-                        </>
-                      )}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-bold mb-1" style={{ color: 'var(--dash-text-primary)' }}>Brand / Manufacturer</label>
+                        <input name="brand" required type="text" placeholder="Brand name" className="glass-input h-10 w-full px-3 text-xs" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold mb-1" style={{ color: 'var(--dash-text-primary)' }}>Color & Material</label>
+                        <input name="color" required type="text" placeholder="Color or finish" className="glass-input h-10 w-full px-3 text-xs" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-bold mb-1" style={{ color: 'var(--dash-text-primary)' }}>Identifying Traits & Hidden Marks</label>
+                        <textarea name="uniqueMarks" required rows={2} placeholder="Describe scratches, stickers, wallpaper, serial numbers, etc." className="glass-input w-full p-3 text-xs" />
+                      </div>
                     </div>
 
                     <button
                       type="submit"
                       disabled={actionLoading}
-                      className="rounded-xl bg-[#1E3A8A] px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-[#2563EB] transition disabled:opacity-50"
+                      className="dash-btn-primary py-2.5 px-6 text-xs font-bold"
                     >
                       {actionLoading ? 'Submitting...' : 'Submit Verification Answers'}
                     </button>
                   </form>
                 ) : (
-                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 space-y-2">
-                    <p className="text-xs font-semibold text-blue-800">
-                      Answers submitted. Verification status: <span className="font-bold">{match.verificationStatus}</span>
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
+                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                      Answers submitted. Verification status: <span className="uppercase">{match.verificationStatus}</span>
                     </p>
-                    <div className="grid gap-2 border-t border-blue-100 pt-2 text-xs text-slate-700">
+                    <div className="grid gap-1.5 border-t pt-2 text-xs" style={{ borderColor: 'var(--glass-border)', color: 'var(--dash-text-primary)' }}>
                       {match.verificationAnswers &&
                         Object.entries(match.verificationAnswers).map(([key, val]) => (
                           <div key={key}>
@@ -878,20 +732,20 @@ export default function ReviewMatchPage() {
               </div>
             )}
 
-            {/* Finder review answers workflow */}
+            {/* Finder approval form */}
             {isFinder && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {match.verificationStatus === 'NONE' && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
+                  <div className="rounded-xl p-4 text-xs font-semibold" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)' }}>
                     Awaiting ownership verification answers from the item owner.
                   </div>
                 )}
 
                 {match.verificationStatus === 'PENDING' && (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
-                      <h4 className="text-xs font-bold text-blue-900">Review Submitted Answers:</h4>
-                      <div className="grid gap-2 text-xs text-slate-700">
+                  <div className="space-y-3">
+                    <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.18)' }}>
+                      <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Review Owner's Submitted Answers:</h4>
+                      <div className="grid gap-1.5 text-xs" style={{ color: 'var(--dash-text-primary)' }}>
                         {match.verificationAnswers &&
                           Object.entries(match.verificationAnswers).map(([key, val]) => (
                             <div key={key}>
@@ -901,7 +755,7 @@ export default function ReviewMatchPage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-2.5">
                       <button
                         onClick={async () => {
                           setActionLoading(true);
@@ -916,7 +770,8 @@ export default function ReviewMatchPage() {
                           }
                         }}
                         disabled={actionLoading}
-                        className="rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
+                        className="dash-btn-primary py-2 px-5 text-xs font-bold"
+                        style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
                       >
                         Approve Ownership
                       </button>
@@ -934,7 +789,8 @@ export default function ReviewMatchPage() {
                           }
                         }}
                         disabled={actionLoading}
-                        className="rounded-xl bg-red-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-red-700 transition"
+                        className="dash-btn-secondary py-2 px-5 text-xs font-bold"
+                        style={{ color: '#e11d48', borderColor: 'rgba(244,63,94,0.3)' }}
                       >
                         Reject Ownership
                       </button>
@@ -943,14 +799,8 @@ export default function ReviewMatchPage() {
                 )}
 
                 {match.verificationStatus === 'VERIFIED' && (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800">
-                    ✅ Ownership verification APPROVED. The item is ready to be returned.
-                  </div>
-                )}
-
-                {match.verificationStatus === 'VERIFICATION_FAILED' && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800">
-                    ❌ Ownership verification REJECTED. Awaiting updated details from owner.
+                  <div className="rounded-xl p-3.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                    ✅ Ownership verification APPROVED. The item is verified and ready to be returned.
                   </div>
                 )}
               </div>
@@ -958,7 +808,7 @@ export default function ReviewMatchPage() {
           </div>
         )}
 
-        {/* ── Reward Negotiation Section ───────────────────────────── */}
+        {/* Reward Negotiation */}
         {isBothAccepted && match.rewardStatus !== 'Paid' && (
           <RewardNegotiation
             matchId={match._id}
@@ -971,10 +821,10 @@ export default function ReviewMatchPage() {
           />
         )}
 
-        {/* ── Reward Payment Section ─────────────────────────────── */}
+        {/* Reward Payment */}
         {isBothAccepted && match.verificationStatus === 'VERIFIED' && (match.rewardStatus === 'Accepted' || match.rewardStatus === 'Paid') && (
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-4">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Secure Reward Payment</h3>
+          <div className="glass-panel p-6 space-y-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Secure Reward Payment</h3>
             <RewardPayment
               matchId={match._id}
               defaultAmount={match.rewardAmount || 0}
@@ -989,21 +839,21 @@ export default function ReviewMatchPage() {
           </div>
         )}
 
-        {/* ── Participant Info Cards ──────────────────────────────── */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-          <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">Match Participants</h3>
+        {/* Participant Info Cards */}
+        <div className="glass-panel p-6 space-y-4">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Match Participants</h3>
           <div className="grid gap-4 md:grid-cols-2">
             {[
               { role: 'Item Owner', user: match.lostUserId, accepted: ownerAccepted },
               { role: 'Item Finder', user: match.foundUserId, accepted: finderAccepted },
             ].map(({ role, user: u, accepted }) => (
-              <div key={u._id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+              <div key={u._id} className="glass-action-card flex items-center gap-3 p-4">
                 <AvatarBadge name={u.name} avatar={u.avatar} size="md" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">{role}</p>
-                  <p className="text-sm font-bold text-[#0F172A] truncate">{u.name}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>{role}</p>
+                  <p className="text-xs sm:text-sm font-bold truncate" style={{ color: 'var(--dash-text-primary)' }}>{u.name}</p>
                   {u.collegeName && (
-                    <p className="text-[11px] text-[#64748B] truncate">{u.collegeName}</p>
+                    <p className="text-[11px] truncate" style={{ color: 'var(--dash-text-secondary)' }}>{u.collegeName}</p>
                   )}
                 </div>
                 <PortalBadge tone={accepted ? 'success' : 'warning'}>
@@ -1011,31 +861,6 @@ export default function ReviewMatchPage() {
                 </PortalBadge>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* ── Privacy & Security Notice ───────────────────────────── */}
-        <div className="rounded-2xl border border-slate-200 bg-[#F8FAFC] p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-[#1E3A8A]">
-            <ShieldAlert size={16} /> Privacy & Security Controls
-          </div>
-          <p className="text-xs text-[#64748B] leading-relaxed">
-            In accordance with CampusConnect privacy standards, contact numbers and personal emails remain strictly
-            hidden until both users accept the match. After mutual acceptance, a secure chat channel is created for
-            safe communication.
-          </p>
-
-          <div className="mt-4 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3">
-            <Info size={14} className="mt-0.5 shrink-0 text-[#2563EB]" />
-            <p className="text-[11px] text-[#2563EB] leading-relaxed">
-              {!isTerminal
-                ? currentUserAccepted
-                  ? 'You have accepted this match. Waiting for the other party to review and accept.'
-                  : 'Review the item details above carefully. Click "Accept Match" only if you believe this is a genuine match.'
-                : isBothAccepted
-                ? 'Both parties have accepted. The match is confirmed and secure communication is unlocked.'
-                : 'This match was rejected. No further action is required.'}
-            </p>
           </div>
         </div>
       </PageTransition>

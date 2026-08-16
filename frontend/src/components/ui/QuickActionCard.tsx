@@ -22,18 +22,19 @@ export function QuickActionCard({
   return (
     <Link to={to} className="block">
       <motion.div
-        whileHover={{ y: -2 }}
-        transition={{ duration: 0.15 }}
-        className="group flex items-center gap-3.5 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-xs)] transition-all hover:border-blue-300 hover:shadow-[var(--shadow-md)] dark:hover:border-blue-800"
+        whileHover={{ y: -4, scale: 1.01 }}
+        transition={{ duration: 0.18 }}
+        className="group relative flex items-center gap-3.5 overflow-hidden rounded-[1.4rem] border border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] p-4 shadow-[var(--shadow-xs)] backdrop-blur-2xl transition-all hover:border-blue-300 hover:shadow-[var(--shadow-lg)] dark:hover:border-blue-800"
       >
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${bg} ${color} transition-transform group-hover:scale-105`}>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.34),transparent_28%)] opacity-80 dark:opacity-20" />
+        <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] ${bg} ${color} transition-transform duration-200 group-hover:scale-110`}>
           <Icon size={20} />
         </div>
         <div className="min-w-0 flex-1">
-          <h4 className="text-xs font-bold text-[var(--text)] truncate group-hover:text-[var(--primary)] transition-colors">
+          <h4 className="truncate text-sm font-bold text-[var(--text)] transition-colors group-hover:text-[var(--primary)]">
             {title}
           </h4>
-          <p className="text-[11px] text-[var(--secondary)] truncate mt-0.5">
+          <p className="mt-0.5 truncate text-xs text-[var(--secondary)]">
             {description}
           </p>
         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, type Variants } from 'framer-motion';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 
 type PageTransitionProps = {
   children: React.ReactNode;
@@ -9,27 +9,33 @@ type PageTransitionProps = {
 const pageVariants: Variants = {
   initial: {
     opacity: 0,
-    y: 14,
+    y: 8,
   },
   animate: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.28,
+      duration: 0.45,
       ease: [0.16, 1, 0.3, 1],
     },
   },
   exit: {
     opacity: 0,
-    y: -8,
+    y: -6,
     transition: {
-      duration: 0.18,
-      ease: 'easeInOut',
+      duration: 0.2,
+      ease: 'easeIn',
     },
   },
 };
 
 export default function PageTransition({ children, className = '' }: PageTransitionProps) {
+  const shouldReduceMotion = useReducedMotion();
+
+  if (shouldReduceMotion) {
+    return <div className={`min-w-0 ${className}`}>{children}</div>;
+  }
+
   return (
     <motion.div
       initial="initial"
@@ -42,3 +48,6 @@ export default function PageTransition({ children, className = '' }: PageTransit
     </motion.div>
   );
 }
+
+export * from './animations/MotionComponents';
+

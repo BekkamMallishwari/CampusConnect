@@ -47,10 +47,8 @@ export default function RewardsAndRatingModal({
   const handlePayReward = async () => {
     setPaying(true);
     try {
-      // Create Razorpay or simulated payment order
       const orderRes = await paymentsApi.createOrder(match._id, rewardAmount);
       
-      // Complete payment verification
       await paymentsApi.verifyPayment({
         razorpay_order_id: orderRes.data.orderId || 'sim_order_' + Date.now(),
         razorpay_payment_id: 'pay_' + Math.random().toString(36).slice(2, 11),
@@ -92,37 +90,33 @@ export default function RewardsAndRatingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="glass-panel w-full max-w-lg overflow-hidden rounded-[22px] p-6 shadow-2xl transition-all space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-[#1E3A8A]">
+        <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: 'var(--glass-border)' }}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-xs">
               <Sparkles size={20} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#0F172A]">Reward & Reputation</h3>
-              <p className="text-xs text-[#64748B]">Complete handover reward and user review</p>
+              <h3 className="text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Reward & Reputation</h3>
+              <p className="text-xs" style={{ color: 'var(--dash-text-muted)' }}>Complete handover reward and community review</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            className="rounded-xl p-1.5 text-slate-400 hover:text-slate-700 transition"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Tab Buttons */}
-        <div className="flex border-b border-slate-100 bg-[#F8FAFC] my-4 rounded-xl p-1 gap-1">
+        <div className="flex rounded-xl p-1 gap-1 border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
           {hasReward && (
             <button
               onClick={() => setStep('REWARD')}
-              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-                step === 'REWARD'
-                  ? 'bg-white text-[#1E3A8A] shadow-xs'
-                  : 'text-[#64748B] hover:text-[#0F172A]'
-              }`}
+              className={`glass-tab-pill flex-1 py-2 text-xs font-bold ${step === 'REWARD' ? 'active' : ''}`}
             >
               Reward Details
             </button>
@@ -130,22 +124,14 @@ export default function RewardsAndRatingModal({
           {receiptData && (
             <button
               onClick={() => setStep('RECEIPT')}
-              className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-                step === 'RECEIPT'
-                  ? 'bg-white text-[#1E3A8A] shadow-xs'
-                  : 'text-[#64748B] hover:text-[#0F172A]'
-              }`}
+              className={`glass-tab-pill flex-1 py-2 text-xs font-bold ${step === 'RECEIPT' ? 'active' : ''}`}
             >
               Payment Receipt
             </button>
           )}
           <button
             onClick={() => setStep('RATING')}
-            className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-              step === 'RATING'
-                ? 'bg-white text-[#1E3A8A] shadow-xs'
-                : 'text-[#64748B] hover:text-[#0F172A]'
-            }`}
+            className={`glass-tab-pill flex-1 py-2 text-xs font-bold ${step === 'RATING' ? 'active' : ''}`}
           >
             User Rating & Review
           </button>
@@ -153,16 +139,16 @@ export default function RewardsAndRatingModal({
 
         {/* STEP 1: REWARD DISPLAY & PAYMENT */}
         {step === 'REWARD' && (
-          <div className="space-y-6 py-2">
+          <div className="space-y-5 py-2">
             {hasReward ? (
               <div className="space-y-4 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-[#10B981] border border-emerald-200">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-xs">
                   <Gift size={32} />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">Promised Reward</span>
-                  <div className="text-3xl font-black text-[#0F172A]">₹{rewardAmount}</div>
-                  <p className="text-xs text-[#64748B] mt-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Promised Reward</span>
+                  <div className="text-3xl font-black" style={{ color: 'var(--dash-text-primary)' }}>₹{rewardAmount}</div>
+                  <p className="text-xs mt-1" style={{ color: 'var(--dash-text-secondary)' }}>
                     {isOwner
                       ? `Pay ₹${rewardAmount} reward to ${partnerUser.name} for safely returning your item.`
                       : `${partnerUser.name} offered a reward of ₹${rewardAmount} for this item.`}
@@ -173,43 +159,43 @@ export default function RewardsAndRatingModal({
                   <button
                     onClick={handlePayReward}
                     disabled={paying}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#1E3A8A] py-3 text-xs font-bold text-white shadow-md hover:bg-[#2563EB] transition disabled:opacity-50"
+                    className="dash-btn-primary w-full py-3 text-xs font-bold shadow-md disabled:opacity-50"
                   >
                     {paying ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
-                    Pay Reward ₹{rewardAmount} Now
+                    <span>Pay Reward ₹{rewardAmount} Now</span>
                   </button>
                 ) : (
-                  <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-[#10B981]">
+                  <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs font-bold text-emerald-600">
                     <CheckCircle2 size={16} /> Payment Completed & Verified
                   </div>
                 )}
               </div>
             ) : (
-              <div className="space-y-4 text-center py-4">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#2563EB] border border-blue-200">
+              <div className="space-y-4 text-center py-2">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 shadow-xs">
                   <Award size={32} />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-[#0F172A]">Campus Karma Reward</h4>
-                  <p className="text-xs text-[#64748B] mt-1">
+                  <h4 className="text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Campus Karma Reward</h4>
+                  <p className="text-xs mt-1" style={{ color: 'var(--dash-text-secondary)' }}>
                     No cash reward was attached to this item.
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-blue-200 bg-[#F8FAFC] p-4 text-left space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-[#0F172A]">Good Citizen Badge</span>
-                    <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#10B981]">UNLOCKED 🎉</span>
+                <div className="rounded-xl p-4 text-left space-y-2 border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                  <div className="flex items-center justify-between text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>
+                    <span>Good Citizen Badge</span>
+                    <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-600 font-extrabold">UNLOCKED 🎉</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-[#0F172A]">Campus Points</span>
-                    <span className="font-black text-[#2563EB]">+50 Points</span>
+                  <div className="flex items-center justify-between text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>
+                    <span>Campus Karma Points</span>
+                    <span className="font-black text-indigo-500">+50 Points</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setStep('RATING')}
-                  className="w-full rounded-xl bg-[#1E3A8A] py-3 text-xs font-bold text-white hover:bg-[#2563EB] transition"
+                  className="dash-btn-primary w-full py-3 text-xs font-bold shadow-md"
                 >
                   Continue to Rate {partnerUser.name}
                 </button>
@@ -220,47 +206,47 @@ export default function RewardsAndRatingModal({
 
         {/* STEP 2: GENERATED RECEIPT */}
         {step === 'RECEIPT' && (
-          <div className="space-y-5 py-2">
-            <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+          <div className="space-y-4 py-2">
+            <div className="rounded-2xl p-5 space-y-4 border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+              <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A]">CampusConnect Official Receipt</h4>
-                  <p className="text-[10px] text-[#64748B]">Transaction ID: {receiptData?.txId || 'PAY-8921034'}</p>
+                  <h4 className="text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>CampusConnect Official Receipt</h4>
+                  <p className="text-[10.5px]" style={{ color: 'var(--dash-text-muted)' }}>Transaction ID: {receiptData?.txId || 'PAY-8921034'}</p>
                 </div>
-                <FileText size={22} className="text-[#2563EB]" />
+                <FileText size={22} className="text-indigo-500" />
               </div>
 
-              <div className="space-y-2 text-xs text-[#0F172A]">
+              <div className="space-y-2 text-xs" style={{ color: 'var(--dash-text-primary)' }}>
                 <div className="flex justify-between">
-                  <span className="text-[#64748B]">Item Name:</span>
-                  <span className="font-semibold">{match.lostItemId.itemName}</span>
+                  <span style={{ color: 'var(--dash-text-muted)' }}>Item Name:</span>
+                  <span className="font-bold">{match.lostItemId.itemName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#64748B]">Payer (Owner):</span>
-                  <span className="font-semibold">{match.lostUserId.name}</span>
+                  <span style={{ color: 'var(--dash-text-muted)' }}>Payer (Owner):</span>
+                  <span className="font-bold">{match.lostUserId.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#64748B]">Recipient (Finder):</span>
-                  <span className="font-semibold">{match.foundUserId.name}</span>
+                  <span style={{ color: 'var(--dash-text-muted)' }}>Recipient (Finder):</span>
+                  <span className="font-bold">{match.foundUserId.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#64748B]">Date & Time:</span>
+                  <span style={{ color: 'var(--dash-text-muted)' }}>Date & Time:</span>
                   <span>{receiptData?.date || new Date().toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-200 pt-2 text-sm">
-                  <span className="font-bold text-[#0F172A]">Total Amount Paid:</span>
-                  <span className="font-black text-[#10B981]">₹{rewardAmount}</span>
+                <div className="flex justify-between border-t pt-2 text-sm" style={{ borderColor: 'var(--glass-border)' }}>
+                  <span className="font-bold">Total Amount Paid:</span>
+                  <span className="font-black text-emerald-600">₹{rewardAmount}</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-2 text-[10px] text-[#10B981] font-semibold">
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-2 text-[10.5px] text-emerald-600 font-bold border border-emerald-500/20">
                 <ShieldCheck size={14} /> Verified CampusConnect Transaction
               </div>
             </div>
 
             <button
               onClick={() => setStep('RATING')}
-              className="w-full rounded-xl bg-[#1E3A8A] py-3 text-xs font-bold text-white hover:bg-[#2563EB] transition"
+              className="dash-btn-primary w-full py-3 text-xs font-bold shadow-md"
             >
               Proceed to Rate {partnerUser.name}
             </button>
@@ -269,10 +255,10 @@ export default function RewardsAndRatingModal({
 
         {/* STEP 3: 5-STAR RATING & REVIEW */}
         {step === 'RATING' && (
-          <div className="space-y-5 py-2">
+          <div className="space-y-4 py-2">
             <div className="text-center space-y-1">
-              <h4 className="text-sm font-bold text-[#0F172A]">Rate your experience with {partnerUser.name}</h4>
-              <p className="text-xs text-[#64748B]">Your rating builds trust in our campus community</p>
+              <h4 className="text-sm font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Rate your experience with {partnerUser.name}</h4>
+              <p className="text-xs" style={{ color: 'var(--dash-text-secondary)' }}>Your rating builds trust across our campus community</p>
             </div>
 
             {/* Interactive Stars */}
@@ -291,7 +277,7 @@ export default function RewardsAndRatingModal({
                     className={`${
                       (hoverRating || starRating) >= star
                         ? 'fill-amber-400 text-amber-400'
-                        : 'fill-slate-100 text-slate-300'
+                        : 'fill-slate-200/50 text-slate-300 dark:text-slate-700'
                     } transition-colors`}
                   />
                 </button>
@@ -299,7 +285,7 @@ export default function RewardsAndRatingModal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#0F172A] mb-1.5">
+              <label className="block text-xs font-bold mb-1.5" style={{ color: 'var(--dash-text-primary)' }}>
                 Feedback & Review
               </label>
               <textarea
@@ -307,7 +293,7 @@ export default function RewardsAndRatingModal({
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
                 placeholder="Share your experience returning/recovering this item..."
-                className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3.5 py-2.5 text-xs text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20 transition"
+                className="glass-input w-full p-3 text-xs"
               />
             </div>
 
@@ -315,7 +301,7 @@ export default function RewardsAndRatingModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-[#64748B] hover:bg-slate-50 transition"
+                className="dash-btn-secondary py-2.5 px-4 text-xs font-bold"
               >
                 Close
               </button>
@@ -323,10 +309,10 @@ export default function RewardsAndRatingModal({
                 type="button"
                 onClick={handleSaveReview}
                 disabled={submittingRating}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A8A] px-5 py-2.5 text-xs font-semibold text-white shadow-md hover:bg-[#2563EB] transition disabled:opacity-50"
+                className="dash-btn-primary py-2.5 px-5 text-xs font-bold shadow-md disabled:opacity-50"
               >
                 {submittingRating ? <Loader2 size={14} className="animate-spin" /> : <Star size={14} />}
-                {ratingSubmitted ? 'Update Review' : 'Save Review'}
+                <span>{ratingSubmitted ? 'Update Review' : 'Save Review'}</span>
               </button>
             </div>
           </div>

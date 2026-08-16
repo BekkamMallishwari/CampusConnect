@@ -163,10 +163,7 @@ export default function AuthPage() {
   }, [setValue]);
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-16 bg-slate-50 dark:bg-slate-950">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.10),transparent_28%),radial-gradient(circle_at_top_right,rgba(124,58,237,0.08),transparent_24%)]" />
-      <div className="pointer-events-none absolute left-[10%] top-[12%] h-64 w-64 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/5" />
-      <div className="pointer-events-none absolute bottom-[12%] right-[12%] h-72 w-72 rounded-full bg-blue-400/10 blur-3xl dark:bg-blue-500/5" />
+    <div className="relative flex min-h-[calc(100vh-140px)] items-center justify-center overflow-hidden px-4 py-12">
       <AuthCard>
         {/* Logo and Header */}
         <div className="mb-6 flex flex-col items-center gap-5">

@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import heroImg from '../assets/homepage/hero.png';
 import img1 from '../assets/homepage/image.png';
 import imgCopy1 from '../assets/homepage/image copy.png';
-import imgCopy2 from '../assets/homepage/image copy 2.png';
 import imgCopy3 from '../assets/homepage/image copy 3.png';
 import imgCopy4 from '../assets/homepage/image copy 4.png';
 import imgCopy5 from '../assets/homepage/image copy 5.png';
@@ -14,8 +13,6 @@ import imgCopy7 from '../assets/homepage/image copy 7.png';
 import imgCopy8 from '../assets/homepage/image copy 8.png';
 import imgCopy9 from '../assets/homepage/image copy 9.png';
 import imgCopy10 from '../assets/homepage/image copy 10.png';
-import imgCopy11 from '../assets/homepage/image copy 11.png';
-import imgCopy12 from '../assets/homepage/image copy 12.png';
 import imgCopy13 from '../assets/homepage/image copy 13.png';
 import waImg1 from '../assets/homepage/WhatsApp Image 2026-07-11 at 17.23.19.jpeg';
 import waImg2 from '../assets/homepage/WhatsApp Image 2026-07-11 at 17.27.45 (1).jpeg';
@@ -64,7 +61,7 @@ const CAMPUS_IMAGES: CampusImageItem[] = [
     id: 'copy-2',
     title: 'Campus Architecture',
     category: 'Buildings',
-    src: imgCopy2,
+    src: imgCopy3,
     heightClass: 'h-60 sm:h-68 md:h-76',
     floatDelay: 0.1,
     floatDuration: 3.9,
@@ -145,7 +142,7 @@ const CAMPUS_IMAGES: CampusImageItem[] = [
     id: 'copy-11',
     title: 'Lost & Found Recovery Desk',
     category: 'CampusConnect',
-    src: imgCopy11,
+    src: imgCopy10,
     heightClass: 'h-56 sm:h-64 md:h-68',
     floatDelay: 0.55,
     floatDuration: 4.3,
@@ -154,7 +151,7 @@ const CAMPUS_IMAGES: CampusImageItem[] = [
     id: 'copy-12',
     title: 'Campus Greenery & Walkways',
     category: 'Outdoors',
-    src: imgCopy12,
+    src: imgCopy5,
     heightClass: 'h-48 sm:h-56 md:h-60',
     floatDelay: 0.05,
     floatDuration: 4.6,

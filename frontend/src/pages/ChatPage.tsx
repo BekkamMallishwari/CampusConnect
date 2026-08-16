@@ -20,9 +20,12 @@ import {
   MapPin,
   Archive,
   CreditCard,
+  ExternalLink,
+  Crosshair,
 } from 'lucide-react';
 import { chatsApi, matchesApi, rewardsApi, paymentsApi, type ChatType, type MessageType, type MatchType, type RewardType } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { CAMPUS_LANDMARKS, useUserLocation } from '../hooks/useUserLocation';
 import {
   connectSocket,
   getSocket,
@@ -124,7 +127,79 @@ export default function ChatPage() {
   const [showMarkReturnedModal, setShowMarkReturnedModal] = useState(false);
   const [showRewardRatingModal, setShowRewardRatingModal] = useState(false);
   const [showMeetingScheduler, setShowMeetingScheduler] = useState(false);
+  const [showShareLocationModal, setShowShareLocationModal] = useState(false);
 
+  // Meeting Location Sharing State
+  const [locationShareMode, setLocationShareMode] = useState<'current' | 'preset' | 'custom'>('current');
+  const [selectedMeetingSpot, setSelectedMeetingSpot] = useState('Central Library');
+  const [customMeetingSpot, setCustomMeetingSpot] = useState('');
+  const [meetingNote, setMeetingNote] = useState('');
+  const [sendingLocation, setSendingLocation] = useState(false);
+
+  const {
+    status: chatGeoStatus,
+    errorMessage: chatGeoError,
+    locationInfo: chatLocationInfo,
+    requestLocation: requestChatLocation,
+  } = useUserLocation();
+
+  const handleSendMeetingLocation = async () => {
+    if (!selectedChat) return;
+    setSendingLocation(true);
+    try {
+      let locationPayload: { name: string; lat?: number; lng?: number } | undefined;
+
+      if (locationShareMode === 'current') {
+        let loc = chatLocationInfo;
+        if (!loc) {
+          loc = await requestChatLocation();
+        }
+        locationPayload = {
+          name: loc.addressLabel || loc.name,
+          lat: loc.coordinates.lat,
+          lng: loc.coordinates.lng,
+        };
+      } else if (locationShareMode === 'preset') {
+        const landmark = CAMPUS_LANDMARKS.find((l) => l.name === selectedMeetingSpot);
+        locationPayload = {
+          name: selectedMeetingSpot,
+          lat: landmark ? landmark.coords[0] : undefined,
+          lng: landmark ? landmark.coords[1] : undefined,
+        };
+      } else {
+        if (!customMeetingSpot.trim()) {
+          toast.error('Please enter a location description.');
+          setSendingLocation(false);
+          return;
+        }
+        locationPayload = {
+          name: customMeetingSpot.trim(),
+        };
+      }
+
+      const res = await chatsApi.sendMessage(
+        selectedChat._id,
+        meetingNote.trim() ? meetingNote.trim() : undefined,
+        undefined,
+        locationPayload,
+      );
+
+      const savedMessage = res.data.message;
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === savedMessage._id)) return prev;
+        return [...prev, savedMessage];
+      });
+      scrollToBottom();
+      setShowShareLocationModal(false);
+      setMeetingNote('');
+      setCustomMeetingSpot('');
+      toast.success('Meeting location shared!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to share meeting location.');
+    } finally {
+      setSendingLocation(false);
+    }
+  };
 
   const [showPayRewardSection, setShowPayRewardSection] = useState(false);
   const [respondingMeeting, setRespondingMeeting] = useState(false);
@@ -539,35 +614,36 @@ export default function ChatPage() {
     });
 
   const isReadOnly = Boolean(selectedChat?.isClosed || currentMatch?.completed);
+  const activeThread = selectedChat?.participants.find((p) => (p.id ?? (p as any)._id) !== user?.id) || null;
 
   return (
-    <PageTransition className="flex h-[calc(100vh-140px)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <PageTransition className="glass-panel flex h-[calc(100vh-140px)] min-h-[38rem] overflow-hidden rounded-[20px] shadow-lg">
       {/* Left Sidebar: Threads & Search */}
-      <div className="flex w-80 flex-col border-r border-slate-200 bg-[#F8FAFC]">
-        <div className="space-y-3 border-b border-slate-200 p-4">
+      <div className="hidden w-80 flex-col border-r lg:flex" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+        <div className="space-y-3 border-b p-4" style={{ borderColor: 'var(--glass-border)' }}>
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold tracking-tight text-[#0F172A]">Secure Messages</h2>
+            <h2 className="text-sm font-extrabold tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>Secure Messages</h2>
             <StatusDot status={connectionStatus} />
           </div>
 
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--dash-text-muted)' }} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-2 text-xs outline-none focus:border-[#3B82F6] transition"
+              className="glass-input w-full pl-8 pr-3 py-2 text-xs font-medium"
             />
           </div>
         </div>
 
-        <div className="flex-1 space-y-1 overflow-y-auto p-2">
+        <div className="flex-1 space-y-1.5 overflow-y-auto p-2.5">
           {filteredChats.length === 0 ? (
             <div className="py-12 px-4 text-center">
-              <MessageCircle size={28} className="mx-auto mb-2 text-[var(--primary)] opacity-60" />
-              <p className="text-xs font-bold text-[var(--text)]">No conversations yet</p>
-              <p className="mt-1 text-[11px] text-[var(--secondary)] leading-relaxed">
+              <MessageCircle size={28} className="mx-auto mb-2 text-indigo-500 opacity-60" />
+              <p className="text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>No conversations yet</p>
+              <p className="mt-1 text-[11px] leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
                 Verified item matches will allow messaging.
               </p>
             </div>
@@ -581,10 +657,10 @@ export default function ChatPage() {
                 <button
                   key={chat._id}
                   onClick={() => handleChatSelect(chat)}
-                  className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition-all ${
+                  className={`glass-action-card flex w-full items-center gap-3 p-3 text-left transition-all ${
                     active
-                      ? 'bg-white text-[#0F172A] font-semibold shadow-xs ring-1 ring-slate-200'
-                      : 'text-[#64748B] hover:bg-white hover:text-[#0F172A]'
+                      ? 'border-indigo-500/40 bg-indigo-500/10 shadow-sm'
+                      : ''
                   }`}
                 >
                   <div className="relative flex-shrink-0">
@@ -592,10 +668,10 @@ export default function ChatPage() {
                       <img
                         src={counterpart.avatar}
                         alt={counterpart.name}
-                        className="h-9 w-9 rounded-lg object-cover border border-slate-200"
+                        className="h-9 w-9 rounded-xl object-cover border border-white/70 shadow-xs"
                       />
                     ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1E3A8A] text-xs font-bold uppercase text-white">
+                      <div className="dash-avatar-gradient flex h-9 w-9 items-center justify-center rounded-xl text-xs font-black uppercase text-white shadow-xs">
                         {counterpart?.name.charAt(0) ?? '?'}
                       </div>
                     )}
@@ -606,12 +682,12 @@ export default function ChatPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="truncate text-xs font-bold">{counterpart?.name}</p>
-                      <span className="text-[10px] text-slate-400">
+                      <p className="truncate text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{counterpart?.name}</p>
+                      <span className="text-[10px]" style={{ color: 'var(--dash-text-muted)' }}>
                         {chat.updatedAt ? new Date(chat.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </div>
-                    <p className="truncate text-[11px] text-[#64748B] mt-0.5">
+                    <p className="truncate text-[11px] mt-0.5" style={{ color: 'var(--dash-text-secondary)' }}>
                       {chat.isClosed
                         ? 'Archived Chat'
                         : chat.lastMessage?.text || (chat.lastMessage?.imageUrl ? '📎 Attachment' : 'Secure Chat')}
@@ -619,7 +695,7 @@ export default function ChatPage() {
                   </div>
 
                   {unread > 0 && !active && (
-                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#2563EB] px-1 text-[9px] font-black text-white">
+                    <span className="unread-badge shrink-0">
                       {unread}
                     </span>
                   )}
@@ -631,14 +707,27 @@ export default function ChatPage() {
       </div>
 
       {/* Right Main Panel */}
-      <div className="flex flex-1 flex-col bg-white">
+      <div className="flex min-w-0 flex-1 flex-col" style={{ background: 'var(--glass-bg-subtle)' }}>
         <ConnectionBanner status={connectionStatus} />
 
         {selectedChat ? (
           <>
+            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#64748B]">Current chat</p>
+                <p className="truncate text-sm font-bold text-[#0F172A]">{activeThread?.name || 'Conversation'}</p>
+              </div>
+              <Link
+                to="/messages"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#1E3A8A]"
+              >
+                Back
+              </Link>
+            </div>
+
             {/* Header with Stepper & Workflow Controls */}
             {(() => {
-              const currentCounterpart = selectedChat.participants.find((p) => (p.id ?? (p as any)._id) !== user?.id);
+              const currentCounterpart = activeThread;
               const isOwner = currentMatch?.lostUserId._id === user?.id;
               const isFinder = currentMatch?.foundUserId._id === user?.id;
               const meetingConfirmed = currentMatch?.meetingStatus === 'CONFIRMED';
@@ -662,8 +751,8 @@ export default function ChatPage() {
               return (
                 <div className="border-b border-slate-200 bg-white p-4 space-y-3">
                   {/* Top Bar: Participant Info & Action Buttons */}
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
                       <div className="relative">
                         {currentCounterpart?.avatar ? (
                           <img
@@ -680,9 +769,9 @@ export default function ChatPage() {
                           <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
                         )}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-bold text-[#0F172A]">{currentCounterpart?.name}</h3>
+                          <h3 className="truncate text-sm font-bold text-[#0F172A]">{currentCounterpart?.name}</h3>
                           {verificationVerified && (
                             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#10B981]">
                               <ShieldCheck size={12} /> Verified
@@ -807,7 +896,7 @@ export default function ChatPage() {
                   </div>
 
                   {/* ─── Workflow Stepper Header ───────────────────────────────── */}
-                  <div className="flex items-center justify-between gap-1 overflow-x-auto py-2.5 px-2 rounded-xl bg-[#F8FAFC] border border-slate-200/80">
+                  <div className="flex items-center justify-between gap-1 overflow-x-auto rounded-xl border border-slate-200/80 bg-[#F8FAFC] px-2 py-2.5">
                     {[
                       { label: 'Chat', active: true, completed: true },
                       { label: 'Meeting', active: Boolean(meetingPending), completed: Boolean(meetingConfirmed) },
@@ -851,7 +940,7 @@ export default function ChatPage() {
                           Response Required
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-slate-700 font-medium">
+                      <div className="grid grid-cols-1 gap-2 text-slate-700 font-medium sm:grid-cols-2">
                         <p className="flex items-center gap-1">
                           <MapPin size={13} className="text-amber-600" /> <strong>Location:</strong> {currentMatch.meetingLocation}
                         </p>
@@ -899,7 +988,7 @@ export default function ChatPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-slate-700 pt-0.5 font-medium">
+                      <div className="grid grid-cols-1 gap-2 text-slate-700 pt-0.5 font-medium sm:grid-cols-2">
                         <p className="flex items-center gap-1">
                           <MapPin size={12} className="text-[#16A34A]" /> <strong>Location:</strong> {currentMatch.meetingLocation}
                         </p>
@@ -1051,11 +1140,11 @@ export default function ChatPage() {
             })()}
 
             {/* Messages Body */}
-            <div className="flex-1 space-y-4 overflow-y-auto bg-[#F8FAFC] p-6">
+            <div className="flex-1 space-y-3.5 overflow-y-auto p-4 sm:p-6" style={{ background: 'var(--glass-bg-subtle)' }}>
               {messages.length === 0 && (
-                <div className="flex h-full flex-col items-center justify-center space-y-2 text-[#64748B]">
-                  <MessageCircle size={32} className="text-[#3B82F6]" />
-                  <p className="text-xs font-semibold">Secure chat created. Send a message to coordinate handover.</p>
+                <div className="flex h-full flex-col items-center justify-center space-y-2" style={{ color: 'var(--dash-text-muted)' }}>
+                  <MessageCircle size={32} style={{ color: 'var(--dash-accent)' }} />
+                  <p className="text-xs font-semibold">Secure chat initialized. Send a message to coordinate handover.</p>
                 </div>
               )}
 
@@ -1064,21 +1153,62 @@ export default function ChatPage() {
                 return (
                   <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`max-w-md rounded-2xl px-4 py-3 space-y-1.5 shadow-xs ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 space-y-1.5 shadow-sm sm:max-w-md ${
                         isMe
-                          ? 'bg-[#1E3A8A] text-white font-medium rounded-br-none'
-                          : 'bg-white text-[#0F172A] rounded-bl-none border border-slate-200'
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-br-xs shadow-md'
+                          : 'glass-panel rounded-bl-xs border text-left'
                       }`}
+                      style={{
+                        color: isMe ? '#ffffff' : 'var(--dash-text-primary)',
+                      }}
                     >
                       {msg.imageUrl && (
                         <img
                           src={msg.imageUrl}
                           alt="attachment"
-                          className="rounded-lg max-h-60 object-cover w-full cursor-pointer hover:opacity-90 transition"
+                          className="rounded-xl max-h-60 object-cover w-full cursor-pointer hover:opacity-90 transition shadow-xs"
                         />
                       )}
+
+                      {/* Shared Meeting Location Bubble */}
+                      {msg.location && (
+                        <div
+                          className={`rounded-xl p-3 border space-y-1.5 ${
+                            isMe
+                              ? 'bg-white/15 border-white/25 text-white'
+                              : 'border-indigo-200/80 bg-indigo-50/80 text-indigo-950 dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider opacity-90">
+                            <MapPin size={13} className={isMe ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'} />
+                            <span>Meeting Handover Spot</span>
+                          </div>
+                          <p className="text-xs font-bold leading-snug">
+                            {msg.location.name}
+                          </p>
+                          {(msg.location.lat !== undefined && msg.location.lng !== undefined) && (
+                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-current/15 text-[10px]">
+                              <span className="font-mono opacity-85">
+                                {msg.location.lat.toFixed(4)}°, {msg.location.lng.toFixed(4)}°
+                              </span>
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${msg.location.lat},${msg.location.lng}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center gap-1 font-bold underline hover:opacity-100 ${
+                                  isMe ? 'text-white' : 'text-indigo-600 dark:text-indigo-300'
+                                }`}
+                              >
+                                <span>Maps</span>
+                                <ExternalLink size={10} />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
-                      <div className={`flex items-center justify-end gap-1 text-[10px] ${isMe ? 'text-blue-200' : 'text-slate-400'}`}>
+                      <div className={`flex items-center justify-end gap-1 text-[10px] ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
                         <Clock size={9} />
                         <span>
                           {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -1086,7 +1216,7 @@ export default function ChatPage() {
                             minute: '2-digit',
                           })}
                         </span>
-                        {isMe && (msg.isRead ? <CheckCheck size={11} className="text-blue-300" /> : <Check size={11} />)}
+                        {isMe && (msg.isRead ? <CheckCheck size={11} className="text-indigo-200" /> : <Check size={11} />)}
                       </div>
                     </div>
                   </div>
@@ -1095,12 +1225,12 @@ export default function ChatPage() {
 
               {someoneIsTyping && (
                 <div className="flex items-center gap-2 justify-start pl-2">
-                  <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-xs">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2563EB] [animation-delay:0ms]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2563EB] [animation-delay:150ms]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#2563EB] [animation-delay:300ms]" />
+                  <div className="glass-panel flex items-center gap-1 px-3 py-1.5 shadow-xs">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-indigo-500 [animation-delay:300ms]" />
                   </div>
-                  <span className="text-[10px] text-[#64748B]">typing...</span>
+                  <span className="text-[10px]" style={{ color: 'var(--dash-text-muted)' }}>typing...</span>
                 </div>
               )}
 
@@ -1109,24 +1239,23 @@ export default function ChatPage() {
 
             {/* Archived Chat Banner */}
             {isReadOnly && (
-              <div className="flex items-center justify-center gap-3 border-t border-emerald-200 bg-gradient-to-r from-emerald-50 to-white px-4 py-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+              <div className="flex flex-col items-center justify-center gap-3 border-t px-4 py-3 text-center sm:flex-row sm:text-left" style={{ borderColor: 'var(--glass-border)', background: 'rgba(16,185,129,0.08)' }}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
                   <Archive size={16} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-emerald-800">Item Successfully Returned</p>
-                  <p className="text-[10px] text-emerald-600">Chat Archived — This conversation is now read-only</p>
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Item Successfully Returned</p>
+                  <p className="text-[10.5px] text-emerald-600/80">Chat Archived — This conversation is now read-only</p>
                 </div>
               </div>
             )}
 
             {/* Image Preview Strip */}
             {imagePreview && (
-
-              <div className="flex items-center justify-between border-t border-slate-200 bg-white p-3">
+              <div className="flex flex-col gap-3 border-t p-3 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
                 <div className="flex items-center gap-3">
-                  <img src={imagePreview} alt="preview" className="h-12 w-12 rounded-lg object-cover border border-slate-200" />
-                  <span className="text-xs text-[#64748B]">Attached image preview</span>
+                  <img src={imagePreview} alt="preview" className="h-12 w-12 rounded-xl object-cover border" style={{ borderColor: 'var(--glass-border)' }} />
+                  <span className="text-xs" style={{ color: 'var(--dash-text-secondary)' }}>Attached image preview</span>
                 </div>
                 <button onClick={clearImage} className="p-1 text-slate-400 hover:text-slate-700">
                   <X size={16} />
@@ -1135,15 +1264,26 @@ export default function ChatPage() {
             )}
 
             {/* Message Input Form */}
-            <form onSubmit={handleSendMessage} className="flex items-center gap-3 border-t border-slate-200 bg-white p-4">
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t p-3 sm:gap-3 sm:p-4" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
               <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
               <button
                 type="button"
                 onClick={() => imageInputRef.current?.click()}
                 disabled={isReadOnly}
-                className="rounded-xl border border-slate-200 p-3 text-[#64748B] hover:bg-slate-50 disabled:opacity-40"
+                className="footer-contact-icon-btn rounded-xl p-2.5 disabled:opacity-40"
+                title="Attach photo"
               >
                 <ImageIcon size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowShareLocationModal(true)}
+                disabled={isReadOnly}
+                className="footer-contact-icon-btn rounded-xl p-2.5 disabled:opacity-40 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition"
+                title="Share Meeting / Handover Location"
+              >
+                <MapPin size={16} />
               </button>
 
               <input
@@ -1152,13 +1292,13 @@ export default function ChatPage() {
                 onChange={handleInputChange}
                 placeholder={isReadOnly ? 'Item returned — Chat archived' : 'Type your message...'}
                 disabled={isReadOnly}
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-xs outline-none focus:border-[#3B82F6] transition disabled:opacity-50"
+                className="glass-input min-w-0 flex-1 px-4 py-2.5 text-xs font-medium outline-none transition disabled:opacity-50"
               />
 
               <button
                 type="submit"
                 disabled={isReadOnly || sending || (!inputText.trim() && !selectedImage)}
-                className="rounded-xl bg-[#1E3A8A] p-3 text-white shadow-xs hover:bg-[#2563EB] transition disabled:opacity-40"
+                className="dash-btn-primary p-2.5 px-4 rounded-xl text-white shadow-md transition disabled:opacity-40"
               >
                 {isReadOnly ? <Lock size={16} /> : sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </button>
@@ -1196,6 +1336,196 @@ export default function ChatPage() {
                   if (selectedChat) handleChatSelect(selectedChat);
                 }}
               />
+            )}
+
+            {/* Share Meeting Location Modal */}
+            {showShareLocationModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+                <div
+                  className="glass-panel w-full max-w-md p-5 sm:p-6 rounded-3xl space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
+                  style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+                >
+                  <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300">
+                        <MapPin size={16} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Share Meeting Location</h3>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Coordinate a safe handover point</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowShareLocationModal(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Mode Selector Tabs */}
+                  <div className="grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100/80 p-1 dark:bg-slate-800/80 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationShareMode('current');
+                        if (chatGeoStatus === 'idle') requestChatLocation().catch(() => {});
+                      }}
+                      className={`rounded-xl py-2 transition ${
+                        locationShareMode === 'current'
+                          ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
+                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      }`}
+                    >
+                      My Live GPS
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocationShareMode('preset')}
+                      className={`rounded-xl py-2 transition ${
+                        locationShareMode === 'preset'
+                          ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
+                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      }`}
+                    >
+                      Campus Spot
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLocationShareMode('custom')}
+                      className={`rounded-xl py-2 transition ${
+                        locationShareMode === 'custom'
+                          ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
+                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                      }`}
+                    >
+                      Custom Spot
+                    </button>
+                  </div>
+
+                  {/* Tab Contents */}
+                  {locationShareMode === 'current' && (
+                    <div className="space-y-3">
+                      {chatGeoStatus === 'granted' && chatLocationInfo ? (
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 dark:border-emerald-900/50 dark:bg-emerald-950/30 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                              </span>
+                              Live Position Ready
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => requestChatLocation().catch(() => {})}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 underline dark:text-emerald-400"
+                            >
+                              <Crosshair size={11} />
+                              <span>Refresh</span>
+                            </button>
+                          </div>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                            {chatLocationInfo.addressLabel}
+                          </p>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                            Lat: {chatLocationInfo.coordinates.lat.toFixed(5)}, Lng: {chatLocationInfo.coordinates.lng.toFixed(5)}
+                            {chatLocationInfo.coordinates.accuracy && ` (±${chatLocationInfo.coordinates.accuracy}m)`}
+                          </div>
+                        </div>
+                      ) : chatGeoStatus === 'requesting' ? (
+                        <div className="flex items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 text-xs font-semibold text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300">
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Acquiring browser GPS position...</span>
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50 space-y-2 text-center">
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {chatGeoError || 'Allow location access in your browser to share your live coordinates with the other person.'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => requestChatLocation().catch(() => {})}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-purple-700 transition"
+                          >
+                            <Crosshair size={13} />
+                            <span>Detect My Location</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {locationShareMode === 'preset' && (
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        Select Campus Meeting Spot
+                      </label>
+                      <select
+                        value={selectedMeetingSpot}
+                        onChange={(e) => setSelectedMeetingSpot(e.target.value)}
+                        className="glass-input h-11 w-full px-3 text-xs sm:text-sm font-semibold"
+                      >
+                        {CAMPUS_LANDMARKS.map((landmark) => (
+                          <option key={landmark.name} value={landmark.name}>
+                            {landmark.name} ({landmark.category})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {locationShareMode === 'custom' && (
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                        Custom Handover Location
+                      </label>
+                      <input
+                        type="text"
+                        value={customMeetingSpot}
+                        onChange={(e) => setCustomMeetingSpot(e.target.value)}
+                        placeholder="e.g. Ground Floor Reception Desk, Outside AB-1 Cafe..."
+                        className="glass-input h-11 w-full px-3 text-xs sm:text-sm font-medium"
+                      />
+                    </div>
+                  )}
+
+                  {/* Optional Note */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Additional Note (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={meetingNote}
+                      onChange={(e) => setMeetingNote(e.target.value)}
+                      placeholder="e.g. Wearing a blue hoodie, sitting near the entrance..."
+                      className="glass-input h-10 w-full px-3 text-xs"
+                    />
+                  </div>
+
+                  {/* Modal Action Buttons */}
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowShareLocationModal(false)}
+                      className="dash-btn-secondary px-4 py-2 text-xs font-bold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendMeetingLocation}
+                      disabled={sendingLocation || (locationShareMode === 'current' && !chatLocationInfo && chatGeoStatus === 'requesting')}
+                      className="dash-btn-primary px-4 py-2 text-xs font-bold text-white inline-flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                    >
+                      {sendingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                      <span>Share Location</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </>
         ) : (

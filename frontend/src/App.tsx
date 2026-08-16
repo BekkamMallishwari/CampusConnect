@@ -28,22 +28,28 @@ const CommunityPage = lazy(() => import('./pages/CommunityPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 
+import ContactFooter from './components/ContactFooter';
+
 function AppShell() {
   return (
-    <div className="min-h-screen bg-[var(--background)] transition-colors duration-200">
+    <div className="page-shell min-h-screen bg-[var(--background)] transition-colors duration-200 flex flex-col justify-between">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-[-12%] top-[-10%] h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute right-[-8%] top-[18%] h-[28rem] w-[28rem] rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute bottom-[-8rem] left-[26%] h-96 w-96 rounded-full bg-slate-200/80 blur-3xl dark:bg-slate-800/40" />
+        <div className="absolute left-[-12%] top-[-10%] hidden h-[28rem] w-[28rem] rounded-full bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] blur-3xl sm:block" />
+        <div className="absolute right-[-10%] top-[12%] hidden h-[32rem] w-[32rem] rounded-full bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] blur-3xl sm:block" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.56),rgba(247,246,255,0.82)),radial-gradient(circle_at_top_left,rgba(99,102,241,0.06),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(6,182,212,0.05),transparent_24%)] dark:bg-[linear-gradient(180deg,rgba(11,15,25,0.7),rgba(15,23,42,0.85)),radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(6,182,212,0.08),transparent_24%)]" />
       </div>
 
       <Navbar />
 
-      <main className="w-full pb-16">
-        <div className="mx-auto w-full max-w-[1800px] px-4 py-4 sm:px-6 lg:px-8">
+      <main className="w-full flex-1 pb-10 pt-4">
+        <div className="mx-auto w-full max-w-[1760px] px-4 py-4 sm:px-6 lg:px-8 xl:px-8">
           <Outlet />
         </div>
       </main>
+
+      <div className="w-full max-w-[1760px] mx-auto px-4 pb-8 sm:px-6 lg:px-8 xl:px-8">
+        <ContactFooter />
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ type StatsCardProps = {
   label: string;
   value: string | number;
   icon?: ElementType;
+  description?: string;
   trend?: string;
   color?: string;
   bg?: string;
@@ -16,6 +17,7 @@ export function StatsCard({
   label,
   value,
   icon: Icon,
+  description,
   trend,
   color = 'text-[var(--primary)]',
   bg = 'bg-blue-50 dark:bg-blue-950/40',
@@ -24,28 +26,30 @@ export function StatsCard({
 }: StatsCardProps) {
   return (
     <motion.div
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.15 }}
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ duration: 0.18 }}
       onClick={onClick}
-      className={`rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-[var(--shadow-xs)] transition-all hover:shadow-[var(--shadow-md)] ${
+      className={`relative overflow-hidden rounded-[1.5rem] border border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] p-4 shadow-[var(--shadow-xs)] backdrop-blur-2xl transition-all hover:shadow-[var(--shadow-lg)] ${
         onClick ? 'cursor-pointer' : ''
       } ${className}`}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.35),transparent_32%)] opacity-70 dark:opacity-20" />
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent opacity-50" />
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-[var(--secondary)]">{label}</p>
-          <p className="text-2xl font-black text-[var(--text)] tracking-tight">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--secondary)]">{label}</p>
+          <p className="text-3xl font-black tracking-tight text-[var(--text)] sm:text-[2.15rem]">
             {value !== undefined && value !== null ? value : 'No data available'}
           </p>
-          {trend && (
-            <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-              {trend}
+          {(description || trend) && (
+            <p className="text-sm leading-6 text-[var(--secondary)]">
+              {description || trend}
             </p>
           )}
         </div>
         {Icon && (
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${bg} ${color}`}>
-            <Icon size={20} />
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[1rem] border border-white/40 ${bg} ${color} shadow-[0_16px_30px_rgba(15,23,42,0.12)]`}>
+            <Icon size={22} />
           </div>
         )}
       </div>

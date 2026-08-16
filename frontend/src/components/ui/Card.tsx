@@ -9,13 +9,13 @@ type CardProps = {
 };
 
 export function Card({ children, className = '', hover = true, padding = true }: CardProps) {
-  const base = `rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-xs)] transition-all duration-200 ${padding ? 'p-5' : ''}`;
-  const hoverCls = hover ? 'hover:shadow-[var(--shadow-md)] hover:border-[color-mix(in_srgb,var(--primary)_20%,var(--border))]' : '';
+  const base = `rounded-[1.5rem] border border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_94%,transparent)] backdrop-blur-2xl shadow-[var(--shadow-xs)] transition-all duration-200 ${padding ? 'p-5 sm:p-6' : ''}`;
+  const hoverCls = hover ? 'hover:-translate-y-1 hover:shadow-[var(--shadow-lg)] hover:border-[color-mix(in_srgb,var(--primary)_20%,var(--border))]' : '';
 
   return (
     <motion.div
       whileHover={hover ? { y: -2 } : undefined}
-      transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={`${base} ${hoverCls} ${className}`}
     >
       {children}

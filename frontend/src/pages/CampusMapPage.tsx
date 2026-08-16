@@ -341,51 +341,55 @@ export default function CampusMapPage() {
   const walkingMinutes = routeDistance ? Math.max(1, Math.round(routeDistance / 75)) : null;
 
   return (
-    <PageTransition className="space-y-8">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-700">
-            <Compass size={12} className="text-blue-600" /> Interactive Directory & Live GPS
-          </span>
-          <h1 className="text-[clamp(2rem,2vw+1rem,2.75rem)] font-bold tracking-tight text-slate-950">
-            Campus Map & Live Navigation
-          </h1>
-          <p className="max-w-2xl text-base leading-7 text-slate-600">
-            Real-time live location tracking, building directory, and campus walking directions.
-          </p>
-        </div>
+    <PageTransition className="space-y-6 py-2 pb-24">
+      {/* 1. Hero Header */}
+      <div className="glass-hero-banner relative p-6 sm:p-8">
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-xs" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                <Compass size={12} /> Live Campus Navigation
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+              Campus Map & Navigation
+            </h1>
+            <p className="max-w-2xl text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+              Live real-time location telemetry, building landmarks directory, and pedestrian walking directions.
+            </p>
+          </div>
 
-        <button
-          onClick={handleRecenterToUser}
-          className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5 hover:bg-blue-700 cursor-pointer"
-        >
-          <Navigation size={16} className={status === 'requesting' ? 'animate-spin' : ''} />
-          {status === 'requesting' ? 'Locating...' : 'My Live Location'}
-        </button>
+          <button
+            onClick={handleRecenterToUser}
+            className="dash-btn-primary shrink-0 py-2.5 px-5 text-xs font-bold shadow-md cursor-pointer"
+          >
+            <Navigation size={14} className={status === 'requesting' ? 'animate-spin' : ''} />
+            <span>{status === 'requesting' ? 'Locating...' : 'My Live Location'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Responsive Grid Layout */}
-      <div className="grid gap-8 lg:grid-cols-4 min-h-[640px]">
+      <div className="grid gap-6 min-h-[520px] lg:grid-cols-4 lg:min-h-[640px]">
         {/* Sidebar Controls & Info Cards */}
-        <div className="space-y-4 lg:col-span-1 flex flex-col justify-between rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+        <div className="glass-panel space-y-4 lg:col-span-1 flex flex-col justify-between p-5">
           <div className="space-y-4">
             {/* Search Box */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500">
-                <Search size={16} />
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none" style={{ color: 'var(--dash-text-muted)' }}>
+                <Search size={15} />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search building name, code..."
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-4 text-base text-slate-900 placeholder-slate-500 shadow-sm transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                placeholder="Search building, code..."
+                className="glass-input h-10 w-full pl-9 pr-8 text-xs font-semibold"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-950"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700"
                 >
                   <X size={14} />
                 </button>
@@ -411,16 +415,14 @@ export default function CampusMapPage() {
 
             {/* Category Filter Chips */}
             <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">Category Filter</p>
-              <div className="flex flex-wrap gap-2">
+              <p className="mb-2 text-[10.5px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Category Filter</p>
+              <div className="flex flex-wrap gap-1.5">
                 {categories.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-semibold transition cursor-pointer ${
-                      selectedCategory === cat
-                        ? 'border border-blue-200 bg-blue-50 text-blue-700 shadow-sm'
-                        : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700'
+                    className={`glass-tab-pill px-3 py-1 text-xs font-bold cursor-pointer ${
+                      selectedCategory === cat ? 'active' : ''
                     }`}
                   >
                     {cat}
@@ -431,12 +433,12 @@ export default function CampusMapPage() {
 
             {/* Building Results List */}
             <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">
+              <p className="mb-2 text-[10.5px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
                 Locations ({filteredBuildings.length})
               </p>
-              <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
+              <div className="max-h-[260px] overflow-y-auto space-y-1.5 pr-1">
                 {filteredBuildings.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 py-6 text-center text-sm text-slate-600">
+                  <div className="rounded-xl border border-dashed py-6 text-center text-xs" style={{ borderColor: 'var(--glass-border)', color: 'var(--dash-text-muted)' }}>
                     No matching buildings found.
                   </div>
                 ) : (
@@ -447,22 +449,20 @@ export default function CampusMapPage() {
                       <div
                         key={building.id}
                         onClick={() => handleSelectBuilding(building)}
-                        className={`group flex items-center justify-between rounded-xl border p-3 cursor-pointer transition ${
-                          isSelected
-                            ? 'border-blue-200 bg-blue-50 shadow-sm'
-                            : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50'
+                        className={`glass-action-card flex items-center justify-between p-2.5 cursor-pointer ${
+                          isSelected ? 'border-indigo-500/40 bg-indigo-500/10' : ''
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                            <CategoryIcon size={15} />
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isSelected ? 'bg-indigo-600 text-white' : 'bg-indigo-500/10 text-indigo-600'}`}>
+                            <CategoryIcon size={14} />
                           </div>
                           <div className="truncate">
-                            <p className="truncate text-sm font-semibold text-slate-950">{building.name}</p>
-                            <p className="text-[12px] font-medium text-slate-600">{building.code} • {building.category}</p>
+                            <p className="truncate text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{building.name}</p>
+                            <p className="text-[10.5px]" style={{ color: 'var(--dash-text-muted)' }}>{building.code} • {building.category}</p>
                           </div>
                         </div>
-                        <ArrowRight size={14} className={`text-slate-400 transition-transform ${isSelected ? 'translate-x-1 text-blue-600' : 'group-hover:translate-x-0.5'}`} />
+                        <ArrowRight size={13} className={`text-slate-400 transition-transform ${isSelected ? 'translate-x-0.5 text-indigo-600' : ''}`} />
                       </div>
                     );
                   })
@@ -473,33 +473,33 @@ export default function CampusMapPage() {
 
           {/* Active Navigation Route Box */}
           {routeDestination && (
-            <div className="mt-4 space-y-2 rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+            <div className="mt-4 space-y-1.5 rounded-xl p-3 border" style={{ borderColor: 'rgba(99,102,241,0.25)', background: 'rgba(99,102,241,0.06)' }}>
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-700">
-                  <Navigation size={12} className="animate-pulse" /> Active Navigation Route
+                <span className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  <Navigation size={11} className="animate-pulse" /> Active Navigation Route
                 </span>
                 <button
                   onClick={() => setRouteDestination(null)}
-                  className="cursor-pointer text-slate-500 hover:text-slate-950"
+                  className="cursor-pointer text-slate-400 hover:text-slate-700"
                 >
                   <X size={13} />
                 </button>
               </div>
-              <p className="truncate text-sm font-semibold text-slate-950">{routeDestination.name}</p>
+              <p className="truncate text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{routeDestination.name}</p>
               {routeDistance !== null ? (
-                <div className="flex items-center gap-3 text-[12px] text-slate-600">
-                  <span>Distance: <strong className="text-slate-950">{routeDistance} m</strong></span>
-                  <span>Est. Walk: <strong className="text-slate-950">{walkingMinutes} mins</strong></span>
+                <div className="flex items-center gap-3 text-[11px]" style={{ color: 'var(--dash-text-secondary)' }}>
+                  <span>Distance: <strong style={{ color: 'var(--dash-text-primary)' }}>{routeDistance} m</strong></span>
+                  <span>Est. Walk: <strong style={{ color: 'var(--dash-text-primary)' }}>{walkingMinutes} mins</strong></span>
                 </div>
               ) : (
-                <p className="text-[12px] font-medium text-amber-700">Enable location access to calculate live distance.</p>
+                <p className="text-[11px] text-amber-600">Enable location access to calculate live distance.</p>
               )}
             </div>
           )}
         </div>
 
         {/* Leaflet Map Display Panel */}
-        <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white lg:col-span-3 min-h-[520px] shadow-[0_20px_48px_rgba(15,23,42,0.08)]">
+        <div className="glass-panel relative overflow-hidden lg:col-span-3 min-h-[420px]">
           {/* Floating Controls Overlay */}
           <FloatingMapControls
             onLocateMe={handleRecenterToUser}
@@ -513,7 +513,7 @@ export default function CampusMapPage() {
             center={CAMPUS_CENTER}
             zoom={16}
             scrollWheelZoom={true}
-            style={{ width: '100%', height: '100%', minHeight: '540px' }}
+            style={{ width: '100%', height: '100%', minHeight: '420px' }}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

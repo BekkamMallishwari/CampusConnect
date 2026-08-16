@@ -17,15 +17,22 @@ export function EmptyState({
   className = '',
 }: EmptyStateProps) {
   return (
-    <div className={`flex flex-col items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-12 text-center shadow-[var(--shadow-xs)] sm:px-10 ${className}`}>
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-[var(--primary)] dark:bg-blue-950/50">
-        <Icon size={24} />
+    <div className={`glass-panel flex flex-col items-center justify-center px-6 py-14 text-center ${className}`}>
+      <div
+        className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-xs"
+        style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px dashed rgba(99, 102, 241, 0.3)' }}
+      >
+        <Icon size={24} style={{ color: 'var(--dash-accent)' }} />
       </div>
-      <h3 className="text-sm font-bold text-[var(--text)] sm:text-base">{title}</h3>
-      <p className="mt-1 max-w-sm text-xs font-normal text-[var(--secondary)] leading-relaxed">
+      <h3 className="text-base font-extrabold sm:text-lg" style={{ color: 'var(--dash-text-primary)' }}>
+        {title}
+      </h3>
+      <p className="mt-1.5 max-w-sm text-xs sm:text-sm font-medium leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
         {description}
       </p>
-      {action && <div className="mt-4">{action}</div>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }
+
+export default EmptyState;

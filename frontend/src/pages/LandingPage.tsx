@@ -1,732 +1,492 @@
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-  Search,
-  MapPin,
-  Users,
-  Gift,
   ArrowRight,
-  CheckCircle,
-  Menu,
-  X,
+  Bell,
+  Clock3,
+  FileText,
+  LayoutGrid,
+  MapPin,
+  MessageCircle,
+  PackageSearch,
+  Search,
+  ShieldCheck,
   Sparkles,
-  ChevronRight,
-  Award,
-  BookOpen,
-  Shield,
-  Zap,
+  Trophy,
+  Users,
+  Megaphone,
+  type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import heroImg from '../assets/homepage/hero.png';
+import ContactFooter from '../components/ContactFooter';
 
-/* ─── Animation Variants ─────────────────────────────────── */
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+type NavItem = {
+  label: string;
+  icon: LucideIcon;
+  to: string;
 };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] as const } },
+type ListItem = {
+  title: string;
+  subtitle: string;
+  meta: string;
+  badge?: string;
+  badgeClass?: string;
+  icon: LucideIcon;
 };
 
-/* ─── Data ───────────────────────────────────────────────── */
-const features = [
+const navItems: NavItem[] = [
+  { label: 'Dashboard', icon: LayoutGrid, to: '/signup' },
+  { label: 'Lost Items', icon: FileText, to: '/signup' },
+  { label: 'Found Items', icon: PackageSearch, to: '/signup' },
+  { label: 'Messages', icon: MessageCircle, to: '/signup' },
+  { label: 'Rewards', icon: Trophy, to: '/signup' },
+  { label: 'Community', icon: Users, to: '/signup' },
+];
+
+const quickActions = [
   {
-    icon: Search,
-    emoji: '🔍',
-    title: 'Lost & Found',
-    description: 'AI-powered item matching, image recognition, and instant notifications to recover your belongings fast.',
-    glow: 'rgba(37,99,235,0.22)',
+    title: 'Lost Item',
+    description: 'Report something that went missing',
+    icon: FileText,
+    to: '/signup',
+    accent: 'bg-gradient-to-br from-pink-500 to-rose-500',
   },
   {
-    icon: MapPin,
-    emoji: '🗺️',
-    title: 'Campus Map',
-    description: 'Interactive campus navigation with building locations, live directions, and important campus landmarks.',
-    glow: 'rgba(79,70,229,0.22)',
+    title: 'Found Item',
+    description: 'Log an item found on campus',
+    icon: PackageSearch,
+    to: '/signup',
+    accent: 'bg-gradient-to-br from-emerald-500 to-teal-500',
   },
   {
-    icon: Users,
-    emoji: '👥',
-    title: 'Community',
-    description: 'Connect with students through announcements, discussions, and private messaging all in one place.',
-    glow: 'rgba(30,58,138,0.22)',
+    title: 'Messages',
+    description: 'Continue item conversations',
+    icon: MessageCircle,
+    to: '/signup',
+    accent: 'bg-gradient-to-br from-blue-500 to-indigo-600',
   },
   {
-    icon: Gift,
-    emoji: '🏆',
     title: 'Rewards',
-    description: 'Earn and claim secure rewards after successful item verification and handover on campus.',
-    glow: 'rgba(59,130,246,0.22)',
+    description: 'Check points and payout flow',
+    icon: Trophy,
+    to: '/signup',
+    accent: 'bg-gradient-to-br from-amber-400 to-orange-500',
   },
 ];
 
-const steps = [
+const recentActivity: ListItem[] = [
   {
-    number: '01',
-    title: 'Explore Features',
-    description:
-      'Browse all the smart tools CampusConnect offers for reporting lost items, exploring the campus map, connecting with the community, and earning rewards.',
-    icon: BookOpen,
+    title: 'Leather Key Ring',
+    subtitle: 'Cafeteria',
+    meta: 'by QA User B (Finder) · Aug 4, 2026',
+    badge: 'Found',
+    badgeClass: 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20',
+    icon: Clock3,
   },
   {
-    number: '02',
-    title: 'Sign Up Instantly',
-    description:
-      'Create your account in seconds using your college email and personalize your experience.',
-    icon: Zap,
-  },
-  {
-    number: '03',
-    title: 'Enjoy Campus Life',
-    description:
-      'Recover lost items, stay connected, explore the campus, and earn rewards—all from one platform.',
-    icon: Award,
+    title: 'Leather Key Ring',
+    subtitle: 'Cafeteria',
+    meta: 'by QA User A (Owner) · Aug 4, 2026',
+    badge: 'Lost',
+    badgeClass: 'bg-rose-500/10 text-rose-600 border border-rose-500/20',
+    icon: Clock3,
   },
 ];
 
-/* ─── Main Component ─────────────────────────────────────── */
+const aiMatches = [
+  {
+    title: 'Mobile ↔ Mobile',
+    subtitle: '85% match',
+    meta: 'Bekkam Mallishwari • Nature Clicks',
+  },
+];
 
-/* ─── Main Component ─────────────────────────────────────── */
+const messages = [
+  {
+    name: 'Bekkam Mallishwari',
+    preview: 'hey, did you find my id card?',
+    time: '1d ago',
+    count: '1',
+  },
+  {
+    name: 'Student Support',
+    preview: 'lets meet at the library desk',
+    time: '4d ago',
+    count: '2',
+  },
+];
+
 export default function LandingPage() {
-  const { scrollYProgress, scrollY } = useScroll();
-
-  const navBg = useTransform(
-    scrollYProgress,
-    [0, 0.05],
-    ['rgba(30, 58, 138, 0)', 'rgba(255, 255, 255, 0.97)']
-  );
-  const navShadow = useTransform(
-    scrollYProgress,
-    [0, 0.05],
-    ['0 0 0 0 transparent', '0 2px 20px rgba(30,58,138,0.1)']
-  );
-  const navBlur = useTransform(
-    scrollYProgress,
-    [0, 0.05],
-    ['blur(0px)', 'blur(20px)']
-  );
-  const navTextColor = useTransform(
-    scrollYProgress,
-    [0, 0.05],
-    ['#ffffff', '#0F172A']
-  );
-
-  const heroParallax = useTransform(scrollY, [0, 500], [0, -60]);
-
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('home');
-
-  const navLinks = [
-    { id: 'home', label: 'Home' },
-    { id: 'features', label: 'Features' },
-    { id: 'how-it-works', label: 'How It Works' },
-    { id: 'community', label: 'Community' },
-  ];
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = ['home', 'features', 'how-it-works', 'community'];
-      const pos = window.scrollY + 120;
-      for (const s of sections) {
-        const el = document.getElementById(s);
-        if (el && pos >= el.offsetTop && pos < el.offsetTop + el.offsetHeight) {
-          setActiveSection(s);
-        }
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollTo = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) window.scrollTo({ top: el.offsetTop - 72, behavior: 'smooth' });
-    setMobileMenuOpen(false);
-  };
-
   return (
-    <div
-      className="min-h-screen overflow-x-hidden"
-      style={{
-        backgroundColor: '#F8FAFC',
-        color: '#0F172A',
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      }}
-    >
-      {/* ════ NAVBAR ════ */}
-      <motion.nav
-        style={{ backgroundColor: navBg, boxShadow: navShadow, backdropFilter: navBlur }}
-        className="fixed top-0 left-0 right-0 z-50"
-      >
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <button
-              onClick={() => scrollTo('home')}
-              className="flex items-center gap-2.5 group"
-              aria-label="CampusConnect – Go to top"
-            >
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-[14px] shadow-md transition-transform duration-300 group-hover:scale-105"
-                style={{ background: 'linear-gradient(135deg, #1E3A8A, #2563EB)' }}
-              >
-                <Sparkles size={17} className="text-white fill-white" />
+    <div className="min-h-screen overflow-x-hidden flex flex-col justify-between" style={{ color: 'var(--dash-text-primary)' }}>
+      <div className="mx-auto max-w-[1760px] w-full px-3 pb-8 pt-3 sm:px-5 lg:px-8 flex-1">
+        {/* Top Navbar */}
+        <header className="glass-panel sticky top-3 z-40 rounded-2xl shadow-sm backdrop-blur-xl">
+          <div className="grid h-[64px] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 sm:px-5">
+
+            {/* LEFT — Logo */}
+            <Link to="/login" className="flex items-center gap-2.5 shrink-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-700 text-white shadow-md shadow-indigo-500/20">
+                <Sparkles size={17} className="fill-white" />
               </div>
-              <motion.span style={{ color: navTextColor }} className="text-lg font-black tracking-tight">
-                Campus<span>Connect</span>
-              </motion.span>
-            </button>
+              <div className="leading-none hidden sm:block">
+                <div className="text-[15px] font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+                  Campus<span className="text-indigo-500">Connect</span>
+                </div>
+                <div className="text-[9px] font-bold uppercase tracking-[0.25em] mt-0.5" style={{ color: 'var(--dash-text-muted)' }}>
+                  University Portal
+                </div>
+              </div>
+            </Link>
 
-            {/* Desktop nav links */}
-            <div className="hidden md:flex items-center gap-7">
-              {navLinks.map((link) => (
-                <button
-                  key={link.id}
-                  onClick={() => scrollTo(link.id)}
-                  className="relative text-sm font-semibold py-1"
-                  id={`nav-link-${link.id}`}
-                >
-                  <motion.span style={{ color: navTextColor }}>
-                    {link.label}
-                  </motion.span>
-                  {activeSection === link.id && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute -bottom-0.5 left-0 right-0 h-0.5 rounded-full"
-                      style={{ backgroundColor: '#2563EB' }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
+            {/* CENTER — Navigation */}
+            <nav className="hidden lg:flex items-center justify-center gap-1.5">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isFirst = item.label === 'Dashboard';
+                return (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    className={`inline-flex h-8.5 items-center gap-1.5 rounded-xl px-3.5 text-xs font-bold transition-all whitespace-nowrap ${
+                      isFirst
+                        ? 'glass-tab-pill active'
+                        : 'glass-tab-pill'
+                    }`}
+                  >
+                    <Icon size={13} className="shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
 
-            {/* CTA buttons */}
-            <div className="hidden md:flex items-center gap-3">
+            {/* RIGHT — Search + Icons + CTA */}
+            <div className="flex items-center justify-end gap-2.5 shrink-0">
+              <div className="hidden lg:flex h-9 w-[180px] items-center gap-2 overflow-hidden rounded-xl border px-3 transition-all" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                <Search size={13} style={{ color: 'var(--dash-text-muted)' }} />
+                <span className="min-w-0 flex-1 truncate text-xs font-medium" style={{ color: 'var(--dash-text-muted)' }}>Search...</span>
+                <span className="shrink-0 rounded border px-1 py-0.5 text-[9px] font-bold" style={{ borderColor: 'var(--glass-border)', color: 'var(--dash-text-muted)' }}>
+                  ⌘K
+                </span>
+              </div>
+
               <Link
-                id="nav-login-btn"
                 to="/login"
-                className="text-sm font-semibold px-4 py-2 rounded-xl transition-all duration-300"
-                style={{ color: '#2563EB' }}
+                className="dash-btn-primary py-2 px-4 text-xs font-bold shadow-sm"
               >
                 Log In
               </Link>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="mt-4 space-y-5">
+          {/* Hero Banner Section */}
+          <section className="w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="glass-panel relative overflow-hidden rounded-[30px] border shadow-2xl"
+              style={{ background: '#10245D', borderColor: 'rgba(255,255,255,0.15)' }}
+            >
+              <div className="absolute inset-0">
+                <motion.img
+                  initial={{ opacity: 0, scale: 1.02 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  src={heroImg}
+                  alt="Campus banner"
+                  className="h-full w-full object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(11,17,46,0.88)_0%,rgba(17,24,39,0.58)_48%,rgba(17,24,39,0.3)_100%)]" />
+              </div>
+
+              <div className="relative grid min-h-[400px] gap-8 p-6 sm:p-8 xl:min-h-[480px] xl:grid-cols-[1fr_360px] xl:items-end xl:p-8 z-10">
+                <div className="w-full max-w-[640px] pb-2 pt-6 text-white sm:pt-8 xl:pt-0 relative z-10 space-y-3">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-extrabold uppercase tracking-wider text-white backdrop-blur-md">
+                    University Lost & Found
+                    <span className="text-amber-300">👋</span>
+                  </div>
+                  <h1 className="text-3xl sm:text-5xl lg:text-5xl font-black leading-[1.02] tracking-tight text-white">
+                    CampusConnect <span className="bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-300 bg-clip-text text-transparent">Lost & Found</span>
+                  </h1>
+
+                  <p className="max-w-[44ch] text-xs sm:text-sm leading-relaxed text-slate-200">
+                    Track live lost and found reports, surface multimodal AI matches faster, and coordinate secure handovers with escrow rewards.
+                  </p>
+
+                  <div className="pt-2 flex flex-wrap items-center gap-3">
+                    <Link
+                      to="/signup"
+                      className="dash-btn-primary py-2.5 px-5 text-xs font-bold shadow-lg"
+                    >
+                      <FileText size={15} />
+                      Report Lost Item
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="dash-btn-secondary py-2.5 px-5 text-xs font-bold bg-white text-slate-900 shadow-lg hover:bg-slate-100"
+                    >
+                      <PackageSearch size={15} />
+                      Report Found Item
+                    </Link>
+                  </div>
+                </div>
+
+                <motion.aside
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.55, delay: 0.08 }}
+                  className="glass-panel rounded-2xl p-4 text-white shadow-2xl backdrop-blur-xl border border-white/10"
+                  style={{ background: 'rgba(15, 23, 42, 0.65)' }}
+                >
+                  {[
+                    {
+                      title: 'Active AI Matches',
+                      value: '12',
+                      note: 'High confidence matches',
+                      icon: Sparkles,
+                      color: 'bg-indigo-500/20 text-indigo-300',
+                    },
+                    {
+                      title: 'Pending Verifications',
+                      value: '3',
+                      note: 'Ownership claim checks',
+                      icon: Clock3,
+                      color: 'bg-amber-500/20 text-amber-300',
+                    },
+                    {
+                      title: 'Handover Completed',
+                      value: '48',
+                      note: 'Items returned safely',
+                      icon: Bell,
+                      color: 'bg-emerald-500/20 text-emerald-300',
+                    },
+                  ].map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <div
+                        key={item.title}
+                        className={`flex items-center gap-3 rounded-xl p-3 ${index !== 2 ? 'border-b border-white/10 pb-4' : 'pb-1'}`}
+                      >
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${item.color}`}>
+                          <Icon size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-white">{item.title}</p>
+                          <p className="text-2xl font-black leading-none mt-0.5">{item.value}</p>
+                          <p className="text-[11px] text-slate-300 mt-0.5">{item.note}</p>
+                        </div>
+                        <ArrowRight size={15} className="text-white/70" />
+                      </div>
+                    );
+                  })}
+                </motion.aside>
+              </div>
+            </motion.div>
+          </section>
+
+          {/* 4 Dashboard Widgets Grid */}
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)_minmax(0,1fr)_420px]"
+          >
+            {/* Quick Actions */}
+            <div className="glass-panel p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-indigo-500" />
+                <h2 className="text-sm font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Quick Actions</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <Link
+                      key={action.title}
+                      to={action.to}
+                      className="glass-action-card p-3.5 transition hover:-translate-y-0.5"
+                    >
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${action.accent} text-white shadow-md`}>
+                        <Icon size={18} />
+                      </div>
+                      <h3 className="mt-3 text-xs font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>{action.title}</h3>
+                      <p className="mt-0.5 text-[11px]" style={{ color: 'var(--dash-text-secondary)' }}>{action.description}</p>
+                    </Link>
+                  );
+                })}
+              </div>
               <Link
-                id="nav-signup-btn"
                 to="/signup"
-                className="text-sm font-bold px-5 py-2.5 rounded-[14px] text-white transition-all duration-300 hover:-translate-y-0.5"
-                style={{
-                  background: 'linear-gradient(135deg, #1E3A8A, #2563EB)',
-                  boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
-                }}
+                className="glass-action-card flex items-center gap-3 p-3 mt-1 block"
               >
-                Sign Up Free
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600">
+                  <MapPin size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>Campus Map Navigation</p>
+                  <p className="text-[11px]" style={{ color: 'var(--dash-text-secondary)' }}>Explore interactive building directory</p>
+                </div>
               </Link>
             </div>
 
-            {/* Mobile toggle */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl"
-              style={{ color: '#1E3A8A' }}
-              aria-label="Toggle navigation menu"
-              id="mobile-menu-toggle"
-            >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.22, ease: 'easeInOut' }}
-              className="md:hidden overflow-hidden border-t"
-              style={{ backgroundColor: 'white', borderColor: '#E2E8F0' }}
-            >
-              <div className="px-5 py-4 flex flex-col gap-1">
-                {navLinks.map((link) => (
-                  <button
-                    key={link.id}
-                    onClick={() => scrollTo(link.id)}
-                    className="text-left px-4 py-3 rounded-xl text-sm font-semibold transition-colors duration-200"
-                    style={{
-                      color: activeSection === link.id ? '#1E3A8A' : '#64748B',
-                      backgroundColor: activeSection === link.id ? '#EFF6FF' : 'transparent',
-                    }}
-                  >
-                    {link.label}
-                  </button>
-                ))}
-                <div className="flex gap-3 pt-3 border-t mt-2" style={{ borderColor: '#E2E8F0' }}>
-                  <Link
-                    to="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-3 rounded-xl text-sm font-semibold border"
-                    style={{ borderColor: '#CBD5E1', color: '#475569' }}
-                  >
-                    Log In
-                  </Link>
-                  <Link
-                    to="/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-3 rounded-xl text-sm font-bold text-white"
-                    style={{ background: 'linear-gradient(135deg, #1E3A8A, #2563EB)' }}
-                  >
-                    Sign Up Free
-                  </Link>
+            {/* Recent Activity */}
+            <div className="glass-panel p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock3 size={16} className="text-indigo-500" />
+                  <h2 className="text-sm font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Recent Reports</h2>
                 </div>
+                <Link to="/signup" className="text-xs font-bold text-indigo-500 hover:underline">View all</Link>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.nav>
-
-      {/* ════ HERO SECTION ════ */}
-      <section
-        id="home"
-        className="relative min-h-screen flex items-center overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #0C1E5A 0%, #1E3A8A 40%, #2563EB 80%, #3B82F6 100%)' }}
-      >
-        {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="hero-dots" x="0" y="0" width="36" height="36" patternUnits="userSpaceOnUse">
-                <circle cx="2" cy="2" r="1.5" fill="white" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hero-dots)" />
-          </svg>
-          <div className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full opacity-[0.18] blur-[120px]" style={{ background: '#3B82F6' }} />
-          <div className="absolute -bottom-20 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.14] blur-[100px]" style={{ background: '#60A5FA' }} />
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
-            className="absolute top-16 right-16 w-72 h-72 border border-white/[0.08] rounded-full hidden lg:block" />
-          <motion.div animate={{ rotate: -360 }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
-            className="absolute top-28 right-28 w-44 h-44 border border-white/[0.06] rounded-full hidden lg:block" />
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-            className="absolute bottom-24 left-12 w-36 h-36 border border-white/[0.06] rounded-full hidden lg:block" />
-        </div>
-
-        <motion.div
-          style={{ y: heroParallax }}
-          className="relative z-10 mx-auto max-w-7xl px-5 lg:px-8 w-full pt-28 pb-24"
-        >
-          <div className="grid lg:grid-cols-12 gap-8 lg:gap-10 items-center">
-            {/* Left: hero copy (45%) */}
-            <motion.div initial="hidden" animate="show" variants={stagger} className="lg:col-span-5 space-y-7">
-              {/* Badge */}
-              <motion.div variants={fadeUp}>
-                <span
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border shadow-sm"
-                  style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.18)', color: '#BFDBFE', backdropFilter: 'blur(8px)' }}
-                >
-                  <Sparkles size={12} className="fill-current text-blue-300" />
-                  Your Campus, Simplified
-                </span>
-              </motion.div>
-
-              {/* Heading */}
-              <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl lg:text-[56px] font-black leading-[1.08] tracking-tight text-white">
-                Lost &amp; Found
-                <br />
-                <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(90deg, #93C5FD, #FBBF24)' }}>
-                  Made Smarter
-                </span>
-                <br />
-                for Your Campus
-              </motion.h1>
-
-              {/* Subtitle */}
-              <motion.p variants={fadeUp} className="text-base sm:text-lg leading-relaxed font-medium max-w-xl text-slate-300">
-                Helping students quickly report, discover, and recover lost belongings while staying connected with the campus community.
-              </motion.p>
-
-              {/* Buttons */}
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-3 pt-2">
-                <Link
-                  id="hero-report-lost-btn"
-                  to="/signup"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs font-extrabold text-white transition-all duration-300 hover:-translate-y-1 shadow-lg shadow-blue-500/30"
-                  style={{ background: '#2563EB' }}
-                >
-                  Report Lost Item <ArrowRight size={15} />
-                </Link>
-                <Link
-                  id="hero-report-found-btn"
-                  to="/signup"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs font-extrabold text-slate-900 transition-all duration-300 hover:-translate-y-1 shadow-lg"
-                  style={{ background: '#10B981' }}
-                >
-                  Report Found Item <CheckCircle size={15} />
-                </Link>
-                <Link
-                  id="hero-explore-community-btn"
-                  to="/signup"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl text-xs font-extrabold text-white border border-white/20 transition-all duration-300 hover:-translate-y-1 backdrop-blur-md"
-                  style={{ background: 'rgba(255,255,255,0.1)' }}
-                >
-                  Explore Community <ChevronRight size={15} />
-                </Link>
-              </motion.div>
-
-              {/* Feature Badges */}
-              <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-5 pt-2">
-                {[
-                  { icon: Shield, text: 'Secure & Private' },
-                  { icon: CheckCircle, text: 'AI Powered Matching' },
-                  { icon: Zap, text: 'Instant Notifications' },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md" style={{ color: '#E2E8F0' }}>
-                    <Icon size={14} style={{ color: '#34D399' }} />
-                    <span className="text-xs font-semibold">{text}</span>
-                  </div>
-                ))}
-              </motion.div>
-            </motion.div>
-
-            {/* Right: Realistic Campus Hero Image */}
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-              className="lg:col-span-7 w-full relative"
-            >
-              <div className="relative rounded-3xl overflow-hidden border border-white/20 shadow-2xl group">
-                <img
-                  src="/campus_hero_bg.png"
-                  alt="Modern University Campus"
-                  className="w-full h-[480px] lg:h-[540px] object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-                
-                {/* Floating Glass Overlay Cards */}
-                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 font-bold">
-                      <Sparkles size={20} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white">AI Similarity Engine Active</p>
-                      <p className="text-[10px] text-slate-300">Live vector matching across campus</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
-                    Online
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Wave bottom */}
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-none">
-          <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 80L60 70C120 60 240 40 360 38C480 36 600 46 720 50C840 54 960 52 1080 48C1200 44 1320 38 1380 35L1440 32V80H1380C1320 80 1200 80 1080 80C960 80 840 80 720 80C600 80 480 80 360 80C240 80 120 80 60 80H0Z" fill="#F8FAFC" />
-          </svg>
-        </div>
-      </section>
-
-
-
-      {/* ════ FEATURES SECTION ════ */}
-      <section id="features" className="py-24 lg:py-32" style={{ backgroundColor: 'white' }}>
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="text-center mb-16 lg:mb-20"
-          >
-            <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5" style={{ background: '#EFF6FF', color: '#2563EB' }}>
-              Core Features
-            </span>
-            <h2 className="text-4xl sm:text-5xl lg:text-[56px] font-black tracking-tight mb-5 leading-[1.1]" style={{ color: '#0F172A' }}>
-              Everything you need.
-              <br />
-              <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(90deg, #1E3A8A, #2563EB)' }}>
-                Nothing you don't.
-              </span>
-            </h2>
-            <p className="text-lg font-medium max-w-2xl mx-auto" style={{ color: '#64748B' }}>
-              Designed specifically for modern university life — CampusConnect brings all
-              essential student tools into one premium, easy-to-use experience.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-40px' }}
-            variants={stagger}
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6"
-          >
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <motion.div
-                  key={feature.title}
-                  variants={fadeUp}
-                  whileHover={{ y: -8, boxShadow: `0 24px 48px ${feature.glow}`, borderColor: '#BFDBFE' }}
-                  transition={{ duration: 0.22 }}
-                  className="group rounded-[24px] p-7 border cursor-pointer"
-                  style={{ backgroundColor: 'white', borderColor: '#E2E8F0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}
-                  id={`feature-card-${feature.title.toLowerCase().replace(/[\s&]+/g, '-')}`}
-                >
-                  <div
-                    className="w-14 h-14 rounded-[18px] flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
-                    style={{ background: 'linear-gradient(135deg, #1E3A8A, #2563EB)', boxShadow: '0 6px 18px rgba(37,99,235,0.28)' }}
-                  >
-                    <Icon size={24} className="text-white" />
-                  </div>
-                  <div className="text-2xl mb-3 transition-transform duration-300 group-hover:scale-110 origin-left">
-                    {feature.emoji}
-                  </div>
-                  <h3 className="text-lg font-black mb-3 tracking-tight" style={{ color: '#0F172A' }}>
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed font-medium" style={{ color: '#64748B' }}>
-                    {feature.description}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-5 text-xs font-bold opacity-0 group-hover:opacity-100 transition-all duration-300" style={{ color: '#2563EB' }}>
-                    Learn more <ArrowRight size={12} />
-                  </div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ════ HOW IT WORKS — Simple by Design ════ */}
-      <section id="how-it-works" className="py-24 lg:py-32" style={{ backgroundColor: '#F8FAFC' }}>
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-            className="text-center mb-16"
-          >
-            <span className="inline-block px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5" style={{ background: '#EFF6FF', color: '#2563EB' }}>
-              Simple by Design
-            </span>
-            <h2 className="text-4xl sm:text-5xl lg:text-[56px] font-black tracking-tight mb-4 leading-[1.1]" style={{ color: '#0F172A' }}>
-              Here's how it works
-            </h2>
-            <p className="text-xl font-medium" style={{ color: '#64748B' }}>
-              More living, less searching.
-            </p>
-          </motion.div>
-
-          <div className="relative">
-            {/* Connecting line (desktop) */}
-            <div
-              className="hidden lg:block absolute top-[80px] left-[calc(16.67%+56px)] right-[calc(16.67%+56px)] h-px z-0"
-              style={{ background: 'linear-gradient(90deg, transparent, #BFDBFE 20%, #BFDBFE 80%, transparent)' }}
-            />
-
-            <motion.div
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: '-40px' }}
-              variants={stagger}
-              className="grid lg:grid-cols-3 gap-8 relative z-10"
-            >
-              {steps.map((step, i) => {
-                const Icon = step.icon;
-                return (
-                  <motion.div
-                    key={step.number}
-                    variants={fadeUp}
-                    whileHover={{ y: -6, boxShadow: '0 20px 44px rgba(30,58,138,0.1)' }}
-                    transition={{ duration: 0.22 }}
-                    className="rounded-[28px] p-8 border text-center relative"
-                    style={{ backgroundColor: 'white', borderColor: '#E2E8F0', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}
-                    id={`step-card-${step.number}`}
-                  >
-                    {/* Step badge */}
-                    <div
-                      className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-black border-2 border-white shadow-md"
-                      style={{ background: 'linear-gradient(135deg, #1E3A8A, #2563EB)', color: 'white' }}
-                    >
-                      Step {step.number}
-                    </div>
-
-                    {/* Icon */}
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 mt-5" style={{ background: '#EFF6FF' }}>
-                      <Icon size={28} style={{ color: '#2563EB' }} />
-                    </div>
-
-                    <h3 className="text-xl font-black mb-4 tracking-tight" style={{ color: '#0F172A' }}>{step.title}</h3>
-                    <p className="text-sm leading-relaxed font-medium" style={{ color: '#64748B' }}>{step.description}</p>
-
-                    {/* Arrow connector */}
-                    {i < steps.length - 1 && (
-                      <div
-                        className="hidden lg:flex absolute -right-4 top-[80px] w-8 h-8 rounded-full items-center justify-center z-20 border-2 border-white shadow-md"
-                        style={{ background: 'linear-gradient(135deg, #1E3A8A, #2563EB)' }}
-                      >
-                        <ArrowRight size={14} className="text-white" />
+              <div className="space-y-3">
+                {recentActivity.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={`${item.title}-${item.subtitle}`} className="glass-action-card flex items-start gap-3 p-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
+                        <Icon size={16} />
                       </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-
-          {/* CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.55, delay: 0.25 }}
-            className="text-center mt-14"
-          >
-            <Link
-              id="how-it-works-signup-btn"
-              to="/signup"
-              className="inline-flex items-center gap-2.5 px-10 py-4 rounded-[20px] text-base font-bold text-white transition-all duration-300 hover:-translate-y-1"
-              style={{ background: 'linear-gradient(135deg, #1E3A8A, #2563EB)', boxShadow: '0 8px 28px rgba(37,99,235,0.35)' }}
-            >
-              Sign Up Free <ArrowRight size={18} />
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-
-
-
-
-
-      {/* ════ CTA BANNER ════ */}
-      <section className="py-20 lg:py-28" style={{ backgroundColor: '#F8FAFC' }}>
-        <div className="mx-auto max-w-5xl px-5 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 36 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-            className="rounded-[32px] p-12 lg:p-20 text-center relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #0C1E5A 0%, #1E3A8A 48%, #2563EB 100%)', boxShadow: '0 24px 64px rgba(30,58,138,0.32)' }}
-          >
-            <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.08]">
-              <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="cta-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-                    <circle cx="2" cy="2" r="1" fill="white" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#cta-dots)" />
-              </svg>
-            </div>
-            <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-20 blur-[80px] pointer-events-none" style={{ background: '#60A5FA' }} />
-
-            <div className="relative z-10">
-              <h2 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-white tracking-tight mb-5 leading-[1.1]">
-                Join Your Campus
-                <br />
-                <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(90deg, #93C5FD, #FBBF24)' }}>
-                  Community Today
-                </span>
-              </h2>
-              <p className="text-lg font-medium mb-10 max-w-2xl mx-auto" style={{ color: '#CBD5E1' }}>
-                Experience university life the way it was meant to be. Connect,
-                discover, and thrive with CampusConnect.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  id="cta-get-started-btn"
-                  to="/signup"
-                  className="inline-flex items-center gap-2.5 px-10 py-4 rounded-[20px] text-sm font-bold transition-all duration-300 hover:-translate-y-1"
-                  style={{ background: 'linear-gradient(135deg, #FBBF24, #F59E0B)', color: '#0F172A', boxShadow: '0 8px 28px rgba(251,191,36,0.32)' }}
-                >
-                  Get Started Free <ArrowRight size={16} />
-                </Link>
-                <Link
-                  id="cta-login-btn"
-                  to="/login"
-                  className="inline-flex items-center gap-2.5 px-10 py-4 rounded-[20px] text-sm font-bold border transition-all duration-300 hover:bg-white/10"
-                  style={{ borderColor: 'rgba(255,255,255,0.28)', color: 'white', backdropFilter: 'blur(8px)' }}
-                >
-                  Already a member? Log In
-                </Link>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{item.title}</p>
+                              {item.badge && (
+                                <span className={`rounded-full px-2 py-0.5 text-[9.5px] font-bold ${item.badgeClass}`}>
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px]" style={{ color: 'var(--dash-text-secondary)' }}>{item.subtitle}</p>
+                          </div>
+                        </div>
+                        <p className="text-[10.5px] mt-0.5" style={{ color: 'var(--dash-text-muted)' }}>{item.meta}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </motion.div>
-        </div>
-      </section>
 
-      {/* ════ FOOTER ════ */}
-      <footer className="border-t pt-14 pb-10" style={{ backgroundColor: '#0F172A', borderColor: '#1E293B' }}>
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
-            {/* Brand */}
-            <div className="col-span-2">
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-[14px]" style={{ background: 'linear-gradient(135deg, #1E3A8A, #2563EB)' }}>
-                  <Sparkles size={18} className="text-white fill-white" />
+            {/* AI Matches */}
+            <div className="glass-panel p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-indigo-500" />
+                  <h2 className="text-sm font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>AI Matches</h2>
                 </div>
-                <span className="text-xl font-black text-white">
-                  Campus<span style={{ color: '#93C5FD' }}>Connect</span>
-                </span>
+                <Link to="/signup" className="text-xs font-bold text-indigo-500 hover:underline">View all</Link>
               </div>
-              <p className="text-sm font-medium leading-relaxed max-w-xs" style={{ color: '#475569' }}>
-                The ultimate platform to simplify your campus experience,
-                built by students for students.
-              </p>
-              <div className="flex gap-5 mt-6">
-                {['Twitter', 'Instagram', 'LinkedIn'].map((s) => (
-                  <a key={s} href="#" className="text-xs font-semibold transition-colors duration-300 hover:text-white" style={{ color: '#475569' }}>
-                    {s}
-                  </a>
+              {aiMatches.map((match) => (
+                <div key={match.title} className="glass-action-card p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase text-emerald-600">
+                      Verified
+                    </span>
+                    <span className="rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-[10px] font-extrabold text-indigo-500">
+                      {match.subtitle}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 py-2">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-base font-black text-indigo-600">
+                      L
+                    </div>
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-indigo-500 text-center" style={{ background: 'var(--glass-bg)' }}>
+                      <div>
+                        <div className="text-lg font-black text-indigo-500">85%</div>
+                        <div className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>Match</div>
+                      </div>
+                    </div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-base font-black text-indigo-600">
+                      F
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <p className="text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{match.title}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--dash-text-secondary)' }}>{match.meta}</p>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <Link
+                      to="/signup"
+                      className="dash-btn-secondary flex-1 py-2 text-center text-xs font-bold"
+                    >
+                      Review Match
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="dash-btn-primary flex-1 py-2 text-center text-xs font-bold"
+                    >
+                      Messages
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Recent Messages & Announcements */}
+            <div className="glass-panel p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageCircle size={16} className="text-indigo-500" />
+                  <h2 className="text-sm font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Recent Messages</h2>
+                </div>
+                <Link to="/signup" className="text-xs font-bold text-indigo-500 hover:underline">View all</Link>
+              </div>
+              <div className="space-y-2.5">
+                {messages.map((message) => (
+                  <div key={message.name + message.preview} className="glass-action-card flex items-center gap-3 p-3">
+                    <div className="dash-avatar-gradient flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-white">
+                      B
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{message.name}</p>
+                        <span className="text-[10px]" style={{ color: 'var(--dash-text-muted)' }}>{message.time}</span>
+                      </div>
+                      <p className="truncate text-xs" style={{ color: 'var(--dash-text-secondary)' }}>{message.preview}</p>
+                    </div>
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-black text-white">
+                      {message.count}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
 
-            {/* Platform */}
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: '#94A3B8' }}>Platform</h4>
-              <ul className="space-y-3">
-                <li><button onClick={() => scrollTo('features')} className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>Features</button></li>
-                <li><button onClick={() => scrollTo('how-it-works')} className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>How It Works</button></li>
-                <li><Link to="/signup" className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>Sign Up</Link></li>
-                <li><Link to="/login" className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>Log In</Link></li>
-              </ul>
+              <div className="glass-action-card p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Campus Alerts</h3>
+                  <Link to="/signup" className="text-[11px] font-bold text-indigo-500 hover:underline">Community</Link>
+                </div>
+                <div className="flex items-start gap-2.5 p-2 rounded-xl" style={{ background: 'rgba(99,102,241,0.06)' }}>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 shrink-0">
+                    <Megaphone size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>Campus Community Feed</p>
+                    <p className="text-[10.5px] leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+                      Connect with students to find lost keys, electronics, or share campus events.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
+          </motion.section>
+        </main>
+      </div>
 
-            {/* Legal */}
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: '#94A3B8' }}>Legal &amp; Support</h4>
-              <ul className="space-y-3">
-                <li><a href="#" className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>Privacy Policy</a></li>
-                <li><a href="#" className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>Terms of Service</a></li>
-                <li><a href="#" className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>Contact Us</a></li>
-                <li><a href="mailto:support@campusconnect.app" className="text-sm font-medium transition-colors duration-200 hover:text-white" style={{ color: '#475569' }}>support@campusconnect.app</a></li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom bar */}
-          <div className="pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: '#1E293B' }}>
-            <p className="text-xs font-medium" style={{ color: '#334155' }}>
-              © {new Date().getFullYear()} CampusConnect. All rights reserved. Built with ❤️ for students.
-            </p>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: '#10B981' }} />
-              <span className="text-xs font-medium" style={{ color: '#334155' }}>All systems operational</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <div className="mx-auto max-w-[1760px] w-full px-3 pb-8 sm:px-5 lg:px-8">
+        <ContactFooter />
+      </div>
     </div>
   );
 }

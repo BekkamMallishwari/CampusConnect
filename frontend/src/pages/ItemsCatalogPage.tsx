@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Filter, Plus, Search, ArrowUpDown } from 'lucide-react';
+import { Filter, Plus, Search, ArrowUpDown, PackageSearch, Layers } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { foundItemsApi, lostItemsApi, type LostItemType, type FoundItemType } from '../lib/api';
 import ItemCard from '../components/ItemCard';
 import PageTransition from '../components/PageTransition';
 import { GridSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
+import { AnimatedCount } from '../components/dashboard/DashboardMotion';
 
 const CATEGORIES = ['All', 'Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other'];
 
@@ -61,72 +62,123 @@ export default function ItemsCatalogPage({ type }: ItemsCatalogPageProps) {
   const reportCount = useMemo(() => items.length, [items.length]);
 
   return (
-    <PageTransition className="space-y-8 py-4 pb-16">
-      {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-6 dark:border-slate-800">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-            {isLost ? 'Lost Items Catalog' : 'Found Items Catalog'}
-          </span>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            {isLost ? 'Reported Lost Items' : 'Reported Found Items'}
-          </h1>
-          <p className="mt-1.5 max-w-2xl text-sm font-semibold text-slate-600 dark:text-slate-300">
-            {isLost
-              ? 'Browse items reported lost across campus. Search by keyword, category, or location.'
-              : 'Browse items found by campus members. Search to claim your missing belongings.'}
-          </p>
-        </div>
+    <PageTransition className="space-y-6 py-2 pb-20">
+      {/* 1. Modern Glass Hero Banner */}
+      <div className="glass-hero-banner relative p-6 sm:p-8 overflow-hidden">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-600/10 blur-3xl" />
+        <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-xs"
+                style={{
+                  background: isLost
+                    ? 'linear-gradient(135deg, #f43f5e, #e11d48)'
+                    : 'linear-gradient(135deg, #10b981, #059669)',
+                }}
+              >
+                {isLost ? <Search size={12} /> : <PackageSearch size={12} />}
+                {isLost ? 'Lost Items Catalog' : 'Found Items Catalog'}
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+              {isLost ? 'Reported Lost Items' : 'Reported Found Items'}
+            </h1>
+            <p className="max-w-2xl text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+              {isLost
+                ? 'Browse items reported lost across campus. Search by keyword, filter by category, or review match statuses.'
+                : 'Browse items found by campus community members. Search here to locate and reclaim your missing belongings.'}
+            </p>
+          </div>
 
-        <Link
-          to={isLost ? '/lost-items/new' : '/found-items/new'}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 text-xs font-bold text-white shadow-md transition hover:bg-blue-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          <Plus size={18} />
-          <span>{isLost ? 'Report Lost Item' : 'Report Found Item'}</span>
-        </Link>
-      </div>
-
-      {/* Stats Summary Bar */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-bold uppercase text-slate-500">Total Items</p>
-          <p className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-white">{reportCount}</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-bold uppercase text-slate-500">Active Category</p>
-          <p className="mt-1 text-lg font-bold text-blue-600 dark:text-blue-400">{category}</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-xs font-bold uppercase text-slate-500">Sort Order</p>
-          <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
-            {sort === 'newest' ? 'Newest First' : 'Oldest First'}
-          </p>
+          <Link
+            to={isLost ? '/lost-items/new' : '/found-items/new'}
+            className="dash-btn-primary shrink-0 py-3 px-6 text-sm font-bold shadow-md"
+          >
+            <Plus size={16} />
+            <span>{isLost ? 'Report Lost Item' : 'Report Found Item'}</span>
+          </Link>
         </div>
       </div>
 
-      {/* Search & Filter Controls */}
-      <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto]">
-          <div className="relative">
-            <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+      {/* 2. Glass Stat KPIs */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="glass-stat-card p-4 sm:p-5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
+              Total {isLost ? 'Lost Reports' : 'Found Reports'}
+            </p>
+            <p className="mt-1 text-2xl sm:text-3xl font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>
+              <AnimatedCount value={reportCount} />
+            </p>
+          </div>
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
+            style={{
+              background: isLost
+                ? 'linear-gradient(135deg, #f43f5e, #e11d48)'
+                : 'linear-gradient(135deg, #10b981, #059669)',
+            }}
+          >
+            <Layers size={20} />
+          </div>
+        </div>
+
+        <div className="glass-stat-card p-4 sm:p-5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
+              Active Category
+            </p>
+            <p className="mt-1 text-xl sm:text-2xl font-bold truncate max-w-[180px]" style={{ color: 'var(--dash-text-primary)' }}>
+              {category}
+            </p>
+          </div>
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+          >
+            <Filter size={20} />
+          </div>
+        </div>
+
+        <div className="glass-stat-card p-4 sm:p-5 flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
+              Sort Ordering
+            </p>
+            <p className="mt-1 text-xl sm:text-2xl font-bold" style={{ color: 'var(--dash-text-primary)' }}>
+              {sort === 'newest' ? 'Newest First' : 'Oldest First'}
+            </p>
+          </div>
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-xs"
+            style={{ background: 'linear-gradient(135deg, #06b6d4, #3b82f6)' }}
+          >
+            <ArrowUpDown size={20} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Search & Filter Bar */}
+      <div className="glass-panel p-4 sm:p-5 space-y-3">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
+          <div className="relative min-w-0">
+            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--dash-text-muted)' }} />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by title, description, category, brand, location..."
-              className="h-12 w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 pl-11 pr-4 text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition outline-none focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]"
+              placeholder="Search by item title, brand, location, description..."
+              className="glass-input h-11 w-full pl-10 pr-4 text-xs sm:text-sm font-medium outline-none transition"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter size={16} className="text-slate-500 dark:text-slate-400" />
+            <Filter size={15} className="shrink-0" style={{ color: 'var(--dash-text-muted)' }} />
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="h-12 min-w-[180px] rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 text-sm font-medium text-slate-900 dark:text-slate-100 transition outline-none focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]"
+              className="glass-input h-11 px-3.5 text-xs sm:text-sm font-semibold outline-none transition"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>{cat}</option>
@@ -135,20 +187,34 @@ export default function ItemsCatalogPage({ type }: ItemsCatalogPageProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <ArrowUpDown size={16} className="text-slate-500 dark:text-slate-400" />
+            <ArrowUpDown size={15} className="shrink-0" style={{ color: 'var(--dash-text-muted)' }} />
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="h-12 min-w-[160px] rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 text-sm font-medium text-slate-900 dark:text-slate-100 transition outline-none focus:border-blue-500 focus:shadow-[0_0_0_4px_rgba(37,99,235,0.15)]"
+              className="glass-input h-11 px-3.5 text-xs sm:text-sm font-semibold outline-none transition"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
             </select>
           </div>
         </div>
+
+        {/* Category quick-pill row */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategory(cat)}
+              className={`glass-tab-pill text-xs py-1.5 px-3 rounded-xl ${category === cat ? 'active' : ''}`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Main Content Grid or Empty State */}
+      {/* 4. Items Grid or Empty State */}
       {isLoading ? (
         <GridSkeleton count={6} />
       ) : items.length === 0 ? (
@@ -156,7 +222,7 @@ export default function ItemsCatalogPage({ type }: ItemsCatalogPageProps) {
           title={isLost ? 'No Lost Items Found' : 'No Found Items'}
           description={
             search || category !== 'All'
-              ? 'No items match your search filters. Try clearing your search or changing the category.'
+              ? 'No items match your active search filters. Try clearing your search keyword or switching category.'
               : isLost
                 ? 'There are no lost items reported yet. Report a lost item to get started.'
                 : 'There are no found items reported yet. Report a found item to help return it to its owner.'
@@ -164,15 +230,15 @@ export default function ItemsCatalogPage({ type }: ItemsCatalogPageProps) {
           action={
             <Link
               to={isLost ? '/lost-items/new' : '/found-items/new'}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-xs font-bold text-white shadow-md transition hover:bg-blue-700"
+              className="dash-btn-primary py-2.5 px-5 text-xs font-bold"
             >
-              <Plus size={16} />
+              <Plus size={15} />
               <span>{isLost ? 'Report Lost Item' : 'Report Found Item'}</span>
             </Link>
           }
         />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => (
             <ItemCard
               key={item._id}

@@ -15,52 +15,49 @@ import {
   TrendingUp,
   AlertCircle,
   Check,
+  ShieldCheck,
 } from 'lucide-react';
 import { matchesApi, type MatchType } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import PageTransition from '../components/PageTransition';
 import LoadingSpinner from '../components/LoadingSpinner';
-import RewardPayment from '../components/RewardPayment';
-import { PortalSection, AvatarBadge, PortalBadge, getPrimaryImage } from '../components/portal';
+import { AvatarBadge, PortalBadge, getPrimaryImage } from '../components/portal';
 
 // ─── Status helpers ──────────────────────────────────────────────────────────
 
 function getStatusConfig(matchStatus: MatchType['matchStatus'], ownerAccepted: boolean, finderAccepted: boolean) {
-  if (matchStatus === 'Rejected') return { label: 'Rejected', color: 'bg-red-100 text-red-700 border-red-200' };
-  if (matchStatus === 'Confirmed' || matchStatus === 'CONFIRMED') return { label: 'Confirmed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (matchStatus === 'Completed') return { label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (matchStatus === 'PAYMENT_COMPLETED') return { label: 'Payment Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (matchStatus === 'PENDING_PAYMENT') return { label: 'Awaiting Payment', color: 'bg-amber-100 text-amber-700 border-amber-200' };
-  if (matchStatus === 'HANDOVER_COMPLETED') return { label: 'Handover Done', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (matchStatus === 'Verified') return { label: 'Verified', color: 'bg-blue-100 text-blue-700 border-blue-200' };
-  if (ownerAccepted && finderAccepted) return { label: 'Both Accepted', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (ownerAccepted) return { label: 'Owner Accepted', color: 'bg-amber-100 text-amber-700 border-amber-200' };
-  if (finderAccepted) return { label: 'Finder Accepted', color: 'bg-amber-100 text-amber-700 border-amber-200' };
-  return { label: 'Pending Review', color: 'bg-slate-100 text-slate-600 border-slate-200' };
+  if (matchStatus === 'Rejected') return { label: 'Rejected', color: 'bg-rose-500/10 text-rose-600 border-rose-500/20' };
+  if (matchStatus === 'Confirmed' || matchStatus === 'CONFIRMED') return { label: 'Confirmed', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+  if (matchStatus === 'Completed') return { label: 'Completed', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+  if (matchStatus === 'PAYMENT_COMPLETED') return { label: 'Payment Completed', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+  if (matchStatus === 'PENDING_PAYMENT') return { label: 'Awaiting Payment', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+  if (matchStatus === 'HANDOVER_COMPLETED') return { label: 'Handover Done', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+  if (matchStatus === 'Verified') return { label: 'Verified', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' };
+  if (ownerAccepted && finderAccepted) return { label: 'Both Accepted', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+  if (ownerAccepted) return { label: 'Owner Accepted', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+  if (finderAccepted) return { label: 'Finder Accepted', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+  return { label: 'Pending Review', color: 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20' };
 }
 
 function ConfidenceBar({ pct }: { pct: number }) {
-  const color = pct >= 80 ? 'from-emerald-500 to-emerald-400' : pct >= 60 ? 'from-blue-600 to-cyan-500' : 'from-amber-500 to-orange-400';
+  const color = pct >= 80 ? 'from-emerald-500 to-teal-400' : pct >= 60 ? 'from-indigo-500 to-purple-500' : 'from-amber-500 to-orange-400';
   return (
     <div className="flex items-center gap-3">
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-800">
         <div
           className={`h-full rounded-full bg-gradient-to-r ${color} transition-all duration-500`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="min-w-[3.5rem] text-right text-xs font-extrabold text-[#1E3A8A]">{pct}%</span>
+      <span className="min-w-[3rem] text-right text-xs font-black" style={{ color: 'var(--dash-text-primary)' }}>{pct}%</span>
     </div>
   );
 }
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function MatchesPage() {
   const { user } = useAuth();
   const [matches, setMatches] = useState<MatchType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [confirmLoading, setConfirmLoading] = useState<string | null>(null);
 
   const fetchMatches = async () => {
     try {
@@ -77,8 +74,6 @@ export default function MatchesPage() {
     fetchMatches();
   }, []);
 
-
-
   const handleReject = async (id: string) => {
     if (!confirm('Are you sure you want to dismiss this match?')) return;
     try {
@@ -90,19 +85,6 @@ export default function MatchesPage() {
     }
   };
 
-  const handleConfirmHandover = async (id: string) => {
-    setConfirmLoading(id);
-    try {
-      await matchesApi.confirmHandover(id);
-      toast.success('Handover confirmation recorded!');
-      fetchMatches();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to record handover confirmation.');
-    } finally {
-      setConfirmLoading(null);
-    }
-  };
-
   if (loading) return <LoadingSpinner />;
 
   const pendingCount = matches.filter(
@@ -110,55 +92,65 @@ export default function MatchesPage() {
   ).length;
 
   return (
-    <PageTransition className="space-y-8 py-2 pb-16">
-      {/* ── Page Header ─────────────────────────────────────────── */}
-      <PortalSection
-        eyebrow="AI-Powered Matching"
-        title={`Detected Matches${pendingCount > 0 ? ` (${pendingCount} Pending Review)` : ''}`}
-        description="Potential item overlaps detected by our AI similarity engine. Review each match and accept or reject to proceed."
-      >
-        {/* Summary stat pills */}
-        <div className="flex flex-wrap gap-3">
-          {[
-            { label: 'Total', value: matches.length, color: 'bg-slate-100 text-slate-700' },
-            { label: 'Pending', value: pendingCount, color: 'bg-amber-50 text-amber-700 border border-amber-200' },
-            {
-              label: 'Confirmed',
-              value: matches.filter((m) => m.matchStatus === 'Confirmed' || m.matchStatus === 'CONFIRMED' || m.matchStatus === 'Completed').length,
-              color: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-            },
-          ].map((stat) => (
-            <div key={stat.label} className={`rounded-xl px-4 py-2 text-sm font-semibold ${stat.color}`}>
-              <span className="font-black">{stat.value}</span> {stat.label}
+    <PageTransition className="space-y-6 py-2 pb-20">
+      {/* 1. Hero Glass Banner */}
+      <div className="glass-hero-banner relative p-6 sm:p-8">
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-xs" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                <Sparkles size={12} /> AI Similarity Engine
+              </span>
             </div>
-          ))}
-        </div>
-      </PortalSection>
-
-      {/* ── Empty State ─────────────────────────────────────────── */}
-      {matches.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-200 bg-white py-20 text-center shadow-sm">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
-            <Sparkles size={28} className="text-[#2563EB]" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-[#0F172A]">No matches detected yet</h3>
-            <p className="mt-1 text-sm text-[#64748B]">
-              The AI similarity engine runs automatically when items are reported.
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+              Detected Matches {pendingCount > 0 && `(${pendingCount} Pending Review)`}
+            </h1>
+            <p className="max-w-2xl text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+              Potential lost & found overlaps detected by our multimodal similarity engine. Review each match pair to confirm ownership and coordinate handover.
             </p>
           </div>
+
+          <div className="flex flex-wrap gap-2 shrink-0">
+            {[
+              { label: 'Total Matches', value: matches.length, bg: 'rgba(99,102,241,0.08)', text: 'var(--dash-accent)' },
+              { label: 'Pending', value: pendingCount, bg: 'rgba(245,158,11,0.1)', text: '#f59e0b' },
+              {
+                label: 'Confirmed',
+                value: matches.filter((m) => m.matchStatus === 'Confirmed' || m.matchStatus === 'CONFIRMED' || m.matchStatus === 'Completed').length,
+                bg: 'rgba(16,185,129,0.1)',
+                text: '#10b981',
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="glass-panel px-3.5 py-2 text-center" style={{ background: stat.bg }}>
+                <span className="text-base font-black block" style={{ color: stat.text }}>{stat.value}</span>
+                <span className="text-[10.5px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>{stat.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Matches List / Empty State */}
+      {matches.length === 0 ? (
+        <div className="glass-panel flex flex-col items-center justify-center p-14 text-center">
+          <div className="dash-empty-icon mb-3 h-14 w-14 rounded-2xl">
+            <Sparkles size={24} style={{ color: 'var(--dash-accent)' }} />
+          </div>
+          <h3 className="text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>No matches detected yet</h3>
+          <p className="mt-1 max-w-sm text-xs sm:text-sm" style={{ color: 'var(--dash-text-secondary)' }}>
+            The AI similarity engine automatically compares title, category, visual features, and location when new items are reported.
+          </p>
           <Link
             to="/lost-items/new"
-            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-[#1E3A8A] px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#2563EB] transition"
+            className="dash-btn-primary mt-5 py-2.5 px-5 text-xs font-bold shadow-md"
           >
-            Report a Lost Item <ArrowRight size={16} />
+            Report a Lost Item <ArrowRight size={14} />
           </Link>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {matches.map((match) => {
             const isOwner = match.lostUserId._id === user?.id;
-            const isFinder = match.foundUserId._id === user?.id;
 
             const ownerAccepted = Boolean(match.ownerAccepted || match.lostUserAccepted);
             const finderAccepted = Boolean(match.finderAccepted || match.foundUserAccepted);
@@ -166,7 +158,6 @@ export default function MatchesPage() {
 
             const statusConfig = getStatusConfig(match.matchStatus, ownerAccepted, finderAccepted);
 
-            // Legacy status checks (preserved)
             const isMatchPending =
               match.matchStatus === 'Pending' ||
               match.matchStatus === 'PossibleMatch' ||
@@ -198,34 +189,26 @@ export default function MatchesPage() {
             return (
               <div
                 key={match._id}
-                className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition-all hover:shadow-md ${
-                  isRejected
-                    ? 'border-slate-200 opacity-70'
-                    : isMatchPending && !currentUserAccepted
-                    ? 'border-blue-200 ring-2 ring-blue-500/10'
-                    : 'border-slate-200'
-                }`}
+                className="glass-panel overflow-hidden transition-all duration-200 hover:shadow-lg"
+                style={{ opacity: isRejected ? 0.7 : 1 }}
               >
-                {/* ── Card Top Bar ─────────────────────────────── */}
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    {/* AI confidence badge */}
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#1E3A8A] px-3 py-1 text-[11px] font-bold text-white">
-                      <TrendingUp size={12} /> {match.matchPercentage}% Match
+                {/* Top header bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5" style={{ borderColor: 'var(--glass-border)', background: 'rgba(99,102,241,0.03)' }}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold text-white shadow-xs" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+                      <TrendingUp size={11} /> {match.matchPercentage}% Match
                     </span>
 
-                    {/* Status badge */}
-                    <span className={`rounded-full border px-3 py-1 text-[11px] font-bold ${statusConfig.color}`}>
+                    <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${statusConfig.color}`}>
                       {statusConfig.label}
                     </span>
 
-                    {/* User's own acceptance indicator */}
                     {isMatchPending && !isRejected && (
                       <span
-                        className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                           currentUserAccepted
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-amber-50 text-amber-700'
+                            ? 'bg-emerald-500/10 text-emerald-600'
+                            : 'bg-amber-500/10 text-amber-600'
                         }`}
                       >
                         {currentUserAccepted ? (
@@ -243,124 +226,108 @@ export default function MatchesPage() {
                     )}
                   </div>
 
-                  {/* Match ID */}
-                  <code className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-mono text-slate-500">
+                  <code className="rounded-md px-2 py-0.5 text-[10px] font-mono" style={{ background: 'rgba(99,102,241,0.08)', color: 'var(--dash-text-muted)' }}>
                     #{match._id.slice(-8)}
                   </code>
                 </div>
 
-                {/* ── Confidence Bar ───────────────────────────── */}
-                <div className="border-b border-slate-100 px-6 py-3">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-[#64748B] mb-1.5">
-                    <span>AI Confidence Score</span>
-                    <span className="text-[#1E3A8A]">{match.matchPercentage >= 80 ? 'High Confidence' : match.matchPercentage >= 60 ? 'Medium Confidence' : 'Low Confidence'}</span>
+                {/* AI Confidence Bar */}
+                <div className="border-b px-5 py-3" style={{ borderColor: 'var(--glass-border)' }}>
+                  <div className="flex items-center justify-between text-[11px] font-bold mb-1.5" style={{ color: 'var(--dash-text-muted)' }}>
+                    <span>Confidence Level</span>
+                    <span style={{ color: 'var(--dash-accent)' }}>
+                      {match.matchPercentage >= 80 ? 'High Confidence (Verified overlap)' : match.matchPercentage >= 60 ? 'Moderate Similarity' : 'Low Similarity'}
+                    </span>
                   </div>
                   <ConfidenceBar pct={match.matchPercentage} />
                 </div>
 
-                {/* ── Item Comparison Grid ─────────────────────── */}
-                <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
-                  {/* Lost Item */}
-                  <div className="flex gap-3 rounded-xl border border-red-100 bg-red-50/30 p-4">
+                {/* Side-by-side Items Comparison Grid */}
+                <div className="grid gap-4 p-5 md:grid-cols-2">
+                  {/* Lost Item Card */}
+                  <div className="flex gap-3 rounded-2xl p-3.5" style={{ background: 'rgba(244,63,94,0.05)', border: '1px solid rgba(244,63,94,0.18)' }}>
                     {lostImage ? (
                       <img
                         src={lostImage}
                         alt={match.lostItemId.itemName}
-                        className="h-16 w-16 shrink-0 rounded-xl border border-red-100 object-cover"
+                        className="h-16 w-16 shrink-0 rounded-xl object-cover"
                       />
                     ) : (
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-100 text-red-400">
-                        <AlertCircle size={24} />
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">
+                        <AlertCircle size={22} />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <PortalBadge tone="danger" className="mb-1 text-[10px]">Lost Item</PortalBadge>
-                      <Link to={`/lost-items/${match.lostItemId._id}`} className="block text-sm font-bold text-[#0F172A] hover:underline line-clamp-1">
+                      <PortalBadge tone="danger" className="mb-1 text-[9.5px]">Lost Item</PortalBadge>
+                      <Link to={`/lost-items/${match.lostItemId._id}`} className="block text-xs sm:text-sm font-bold hover:underline line-clamp-1" style={{ color: 'var(--dash-text-primary)' }}>
                         {match.lostItemId.itemName}
                       </Link>
-                      <p className="mt-0.5 text-[11px] text-[#64748B] line-clamp-2">{match.lostItemId.description}</p>
-                      <div className="mt-1 flex items-center gap-1">
+                      <p className="mt-0.5 text-[11px] line-clamp-2" style={{ color: 'var(--dash-text-secondary)' }}>{match.lostItemId.description}</p>
+                      <div className="mt-1.5 flex items-center gap-1.5">
                         <AvatarBadge name={match.lostUserId.name} avatar={match.lostUserId.avatar} size="sm" />
-                        <span className="text-[11px] text-[#64748B]">{match.lostUserId.name}</span>
-                        {ownerAccepted && <CheckCircle2 size={13} className="ml-1 text-emerald-500" />}
+                        <span className="text-[11px] font-semibold" style={{ color: 'var(--dash-text-muted)' }}>{match.lostUserId.name}</span>
+                        {ownerAccepted && <CheckCircle2 size={12} className="text-emerald-500" />}
                       </div>
                     </div>
                   </div>
 
-                  {/* Found Item */}
-                  <div className="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50/30 p-4">
+                  {/* Found Item Card */}
+                  <div className="flex gap-3 rounded-2xl p-3.5" style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.18)' }}>
                     {foundImage ? (
                       <img
                         src={foundImage}
                         alt={match.foundItemId.itemName}
-                        className="h-16 w-16 shrink-0 rounded-xl border border-emerald-100 object-cover"
+                        className="h-16 w-16 shrink-0 rounded-xl object-cover"
                       />
                     ) : (
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-100 text-emerald-400">
-                        <CheckCircle2 size={24} />
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                        <CheckCircle2 size={22} />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <PortalBadge tone="success" className="mb-1 text-[10px]">Found Item</PortalBadge>
-                      <Link to={`/found-items/${match.foundItemId._id}`} className="block text-sm font-bold text-[#0F172A] hover:underline line-clamp-1">
+                      <PortalBadge tone="success" className="mb-1 text-[9.5px]">Found Item</PortalBadge>
+                      <Link to={`/found-items/${match.foundItemId._id}`} className="block text-xs sm:text-sm font-bold hover:underline line-clamp-1" style={{ color: 'var(--dash-text-primary)' }}>
                         {match.foundItemId.itemName}
                       </Link>
-                      <p className="mt-0.5 text-[11px] text-[#64748B] line-clamp-2">{match.foundItemId.description}</p>
-                      <div className="mt-1 flex items-center gap-1">
+                      <p className="mt-0.5 text-[11px] line-clamp-2" style={{ color: 'var(--dash-text-secondary)' }}>{match.foundItemId.description}</p>
+                      <div className="mt-1.5 flex items-center gap-1.5">
                         <AvatarBadge name={match.foundUserId.name} avatar={match.foundUserId.avatar} size="sm" />
-                        <span className="text-[11px] text-[#64748B]">{match.foundUserId.name}</span>
-                        {finderAccepted && <CheckCircle2 size={13} className="ml-1 text-emerald-500" />}
+                        <span className="text-[11px] font-semibold" style={{ color: 'var(--dash-text-muted)' }}>{match.foundUserId.name}</span>
+                        {finderAccepted && <CheckCircle2 size={12} className="text-emerald-500" />}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* ── Integrated Reward Payment ─ only shown after reward is Accepted ——─ */}
-                {isMatchConfirmed && isOwner && (match.rewardStatus === 'Accepted' || (!match.rewardStatus || match.rewardStatus === 'None')) && (
-                  <div className="border-t border-slate-100 px-6 pb-5">
-                    <RewardPayment
-                      matchId={match._id}
-                      defaultAmount={match.rewardAmount || match.lostItemId?.rewardAmount || 0}
-                      finderName={match.foundUserId.name}
-                      itemName={match.lostItemId.itemName}
-                      onPaymentSuccess={fetchMatches}
-                    />
-                  </div>
-                )}
-
-                {/* ── Handover Complete Banner (legacy preserved) ─── */}
+                {/* Handover Done Banner */}
                 {isHandoverCompleted && (
-                  <div className="mx-6 mb-4 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">
-                    <CheckCircle2 size={16} />
-                    <span className="text-xs font-semibold uppercase tracking-wider">
-                      Item handover confirmed and returned successfully
-                    </span>
+                  <div className="mx-5 mb-4 flex items-center gap-2.5 rounded-xl p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                    <ShieldCheck size={16} />
+                    <span>Item handover confirmed and safely returned!</span>
                   </div>
                 )}
 
-                {/* ── Unlocked Contact Info (legacy preserved) ──── */}
+                {/* Unlocked Contact Details */}
                 {showContactDetails && match.contactShared && (
-                  <div className="mx-6 mb-4 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-700">
-                      <CheckCircle2 size={15} /> Verified Handover Details & Unlocked Contacts
+                  <div className="mx-5 mb-4 rounded-xl p-4 space-y-2 border" style={{ borderColor: 'var(--glass-border)', background: 'rgba(99,102,241,0.05)' }}>
+                    <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                      <ShieldCheck size={14} /> Verified Handover Details & Direct Contact
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 text-sm text-slate-700">
+                    <div className="grid gap-2 sm:grid-cols-2 text-xs" style={{ color: 'var(--dash-text-primary)' }}>
                       <div className="flex items-center gap-2">
-                        <User size={14} className="text-slate-500" />
+                        <User size={13} style={{ color: 'var(--dash-text-muted)' }} />
                         <span>
                           {isOwner ? 'Finder: ' : 'Owner: '}
-                          <strong className="text-slate-950">
-                            {isOwner ? match.foundUserId.name : match.lostUserId.name}
-                          </strong>
+                          <strong>{isOwner ? match.foundUserId.name : match.lostUserId.name}</strong>
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Mail size={14} className="text-slate-500" />
+                        <Mail size={13} style={{ color: 'var(--dash-text-muted)' }} />
                         <span>{isOwner ? match.foundUserId.email : match.lostUserId.email}</span>
                       </div>
                       {(isOwner ? match.foundUserId.phone : match.lostUserId.phone) && (
                         <div className="flex items-center gap-2 sm:col-span-2">
-                          <Phone size={14} className="text-slate-500" />
+                          <Phone size={13} style={{ color: 'var(--dash-text-muted)' }} />
                           <span>Phone: {isOwner ? match.foundUserId.phone : match.lostUserId.phone}</span>
                         </div>
                       )}
@@ -368,38 +335,31 @@ export default function MatchesPage() {
                   </div>
                 )}
 
-                {/* ── Action Footer ─────────────────────────────── */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
-                  <div className="flex items-center gap-2 text-[11px] text-[#64748B]">
+                {/* Card Action Footer */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3.5" style={{ borderColor: 'var(--glass-border)', background: 'rgba(99,102,241,0.02)' }}>
+                  <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--dash-text-muted)' }}>
                     <Clock size={12} />
-                    {new Date(match.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                    <span>{new Date(match.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {/* PRIMARY CTA — Review Match (for pending/partial accepted) */}
+                  <div className="flex flex-wrap items-center gap-2">
                     {isMatchPending && !isRejected && (
                       <>
                         <Link
                           to={`/matches/${match._id}`}
                           id={`review-match-${match._id}`}
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A8A] px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-[#2563EB] transition"
+                          className="dash-btn-primary py-2 px-4 text-xs font-bold"
                         >
-                          <Eye size={14} />
-                          {currentUserAccepted ? 'View Match Details' : 'Review Match'}
-                          <ArrowRight size={13} />
+                          <Eye size={13} />
+                          <span>{currentUserAccepted ? 'View Match Details' : 'Review Match'}</span>
+                          <ArrowRight size={12} />
                         </Link>
 
-                        {/* Quick Reject (only if not already accepted) */}
-                        {!currentUserAccepted && !isRejected && (
+                        {!currentUserAccepted && (
                           <button
                             onClick={() => handleReject(match._id)}
-                            disabled={confirmLoading === match._id}
                             id={`reject-match-${match._id}`}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-[#EF4444] hover:bg-red-50 transition disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-100 transition dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-400"
                           >
                             <XCircle size={13} /> Dismiss
                           </button>
@@ -407,55 +367,24 @@ export default function MatchesPage() {
                       </>
                     )}
 
-                    {/* View Details for confirmed/completed matches */}
                     {isConfirmed && !isMatchPending && (
                       <Link
                         to={`/matches/${match._id}`}
-                        className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-[#1E3A8A] hover:bg-blue-100 transition"
+                        className="dash-btn-secondary py-2 px-4 text-xs font-bold"
                       >
                         <Eye size={13} /> View Details
                       </Link>
                     )}
 
-                    {/* Chat button for confirmed matches */}
                     {isChatEnabled && (
                       <Link
                         to="/chats"
                         id={`open-chat-${match._id}`}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                        className="dash-btn-primary py-2 px-4 text-xs font-bold"
+                        style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
                       >
                         <MessageSquare size={13} /> Open Chat
                       </Link>
-                    )}
-
-                    {/* Legacy: Payment stage actions */}
-                    {isPaymentCompleted && isOwner && !match.lostUserHandover && (
-                      <button
-                        onClick={() => handleConfirmHandover(match._id)}
-                        disabled={confirmLoading === match._id}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition"
-                      >
-                        <CheckCircle2 size={13} />
-                        {confirmLoading === match._id ? 'Confirming…' : 'Confirm Handover'}
-                      </button>
-                    )}
-
-                    {isPaymentCompleted && isFinder && !match.foundUserHandover && (
-                      <button
-                        onClick={() => handleConfirmHandover(match._id)}
-                        disabled={confirmLoading === match._id}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition"
-                      >
-                        <CheckCircle2 size={13} />
-                        {confirmLoading === match._id ? 'Confirming…' : 'Confirm Handover'}
-                      </button>
-                    )}
-
-                    {/* Rejected state */}
-                    {isRejected && (
-                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs font-semibold text-slate-500">
-                        <XCircle size={13} /> Dismissed
-                      </span>
                     )}
                   </div>
                 </div>

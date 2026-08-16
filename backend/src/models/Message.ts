@@ -8,6 +8,11 @@ export interface IMessage extends Document {
   itemId?: mongoose.Types.ObjectId;
   text?: string;
   imageUrl?: string;
+  location?: {
+    name: string;
+    lat?: number;
+    lng?: number;
+  };
   isRead: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +27,11 @@ const messageSchema = new Schema<IMessage>(
     itemId: { type: Schema.Types.ObjectId, ref: 'LostItem', index: true },
     text: { type: String },
     imageUrl: { type: String },
+    location: {
+      name: { type: String },
+      lat: { type: Number },
+      lng: { type: Number },
+    },
     isRead: { type: Boolean, default: false },
   },
   { timestamps: true },

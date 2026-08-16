@@ -4,13 +4,13 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 export type PortalTone = 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'danger' | 'neutral';
 
 const toneClasses: Record<PortalTone, string> = {
-  primary: 'border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
-  secondary: 'border-[var(--border)] bg-[var(--surface)] text-[var(--secondary)]',
-  accent: 'border-cyan-200 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800',
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
-  warning: 'border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
-  danger: 'border-red-200 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
-  neutral: 'border-[var(--border)] bg-[var(--card)] text-[var(--text)]',
+  primary: 'border-indigo-200/80 bg-indigo-50/80 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800/50',
+  secondary: 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--dash-text-secondary)]',
+  accent: 'border-cyan-200/80 bg-cyan-50/80 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300 dark:border-cyan-800/50',
+  success: 'border-emerald-200/80 bg-emerald-50/80 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50',
+  warning: 'border-amber-200/80 bg-amber-50/80 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/50',
+  danger: 'border-rose-200/80 bg-rose-50/80 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/50',
+  neutral: 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-[var(--dash-text-primary)]',
 };
 
 export function portalToneClass(tone: PortalTone = 'neutral') {
@@ -35,13 +35,25 @@ export function PortalSection({
   return (
     <section className={`space-y-4 ${className}`}>
       {(title || eyebrow || description || action) && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-0.5">
-            {eyebrow && <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--secondary)]">{eyebrow}</p>}
-            {title && <h2 className="text-xl font-bold tracking-tight text-[var(--text)] sm:text-2xl">{title}</h2>}
-            {description && <p className="max-w-3xl text-xs text-[var(--secondary)] leading-relaxed">{description}</p>}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            {eyebrow && (
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/40">
+                {eyebrow}
+              </span>
+            )}
+            {title && (
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+                {title}
+              </h2>
+            )}
+            {description && (
+              <p className="max-w-3xl text-xs sm:text-sm leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
+                {description}
+              </p>
+            )}
           </div>
-          {action}
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       )}
       {children}
@@ -58,12 +70,12 @@ export function PortalCard({
   className?: string;
   animate?: boolean;
 }) {
-  const base = `overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-xs)] transition-all duration-200 hover:shadow-[var(--shadow-md)]`;
+  const base = `glass-panel overflow-hidden p-5 transition-all duration-200`;
   if (!animate) return <div className={`${base} ${className}`}>{children}</div>;
   return (
     <motion.div
       whileHover={{ y: -2 }}
-      transition={{ duration: 0.15 }}
+      transition={{ duration: 0.18 }}
       className={`${base} ${className}`}
     >
       {children}
@@ -82,7 +94,7 @@ export function PortalBadge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold ${portalToneClass(tone)} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${portalToneClass(tone)} ${className}`}
     >
       {children}
     </span>
@@ -100,16 +112,16 @@ export function PortalButton({
   className?: string;
 }) {
   const variants: Record<'primary' | 'secondary' | 'danger' | 'success', string> = {
-    primary: 'bg-[var(--primary)] text-white shadow-xs hover:bg-[var(--primary-hover)]',
-    secondary: 'border border-[var(--border)] bg-[var(--card)] text-[var(--text)] hover:bg-[var(--surface)]',
-    danger: 'bg-red-600 text-white shadow-xs hover:bg-red-700',
-    success: 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700',
+    primary: 'dash-btn-primary',
+    secondary: 'dash-btn-secondary',
+    danger: 'inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition',
+    success: 'inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition',
   };
 
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition ${variants[variant]} ${className}`}
       {...props}
     >
       {children}
@@ -131,18 +143,22 @@ export function PortalStatCard({
   delta?: string;
 }) {
   return (
-    <PortalCard className="p-4">
+    <div className="glass-stat-card p-4 sm:p-5 flex flex-col justify-between">
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--secondary)]">{label}</p>
-          <p className="text-2xl font-bold tracking-tight text-[var(--text)]">{value}</p>
-          {delta && <p className="text-xs font-medium text-[var(--secondary)]">{delta}</p>}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--dash-text-muted)' }}>
+            {label}
+          </p>
+          <p className="mt-1.5 text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>
+            {value}
+          </p>
+          {delta && <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">{delta}</p>}
         </div>
-        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${portalToneClass(tone)}`}>
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-xs ${portalToneClass(tone)}`}>
           {icon}
         </div>
       </div>
-    </PortalCard>
+    </div>
   );
 }
 
@@ -153,7 +169,7 @@ export function PortalInput({
   return (
     <input
       {...props}
-      className={`h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--placeholder)] focus:border-[var(--primary)] focus:ring-2 focus:ring-blue-500/10 ${className}`}
+      className={`glass-input h-10 w-full px-3.5 text-xs font-medium outline-none transition placeholder:text-[var(--placeholder)] ${className}`}
     />
   );
 }
@@ -165,7 +181,7 @@ export function PortalTextarea({
   return (
     <textarea
       {...props}
-      className={`w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--placeholder)] focus:border-[var(--primary)] focus:ring-2 focus:ring-blue-500/10 ${className}`}
+      className={`glass-input w-full px-3.5 py-2.5 text-xs font-medium outline-none transition placeholder:text-[var(--placeholder)] ${className}`}
     />
   );
 }
@@ -177,7 +193,7 @@ export function PortalSelect({
   return (
     <select
       {...props}
-      className={`h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-xs text-[var(--text)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-blue-500/10 ${className}`}
+      className={`glass-input h-10 w-full px-3.5 text-xs font-medium outline-none transition ${className}`}
     />
   );
 }
@@ -189,13 +205,13 @@ export function PortalProgress({ value, tone = 'primary' }: { value: number; ton
       : tone === 'warning'
       ? 'bg-amber-500'
       : tone === 'danger'
-      ? 'bg-red-500'
+      ? 'bg-rose-500'
       : tone === 'accent'
       ? 'bg-cyan-500'
-      : 'bg-[var(--primary)]';
+      : 'bg-gradient-to-r from-indigo-500 to-purple-600';
 
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface)]">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
       <div className={`h-full rounded-full transition-all duration-300 ${fillClass}`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
     </div>
   );
@@ -217,7 +233,7 @@ export const formatCampusDate = (date?: string) => {
   });
 };
 
-export function getStatusTone(status?: string) {
+export function getStatusTone(status?: string): PortalTone {
   const normalized = (status || '').toLowerCase();
   if (['returned', 'matched', 'completed', 'accepted', 'verified', 'paid', 'success'].some((word) => normalized.includes(word))) return 'success';
   if (['pending', 'waiting', 'possiblematch', 'degraded', 'review'].some((word) => normalized.includes(word))) return 'warning';
@@ -232,13 +248,26 @@ export function AvatarBadge({
 }: {
   name?: string;
   avatar?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }) {
-  const sizeClass = size === 'lg' ? 'h-12 w-12 text-base' : size === 'sm' ? 'h-7 w-7 text-xs' : 'h-9 w-9 text-xs';
+  const sizeClass =
+    size === 'lg'
+      ? 'h-12 w-12 text-base'
+      : size === 'sm'
+      ? 'h-7 w-7 text-xs'
+      : size === 'xs'
+      ? 'h-6 w-6 text-[10.5px]'
+      : 'h-9 w-9 text-xs';
   return avatar ? (
-    <img src={avatar} alt={name || 'Avatar'} className={`shrink-0 rounded-lg object-cover ${sizeClass}`} />
+    <img
+      src={avatar}
+      alt={name || 'Avatar'}
+      className={`shrink-0 rounded-full border border-white/70 object-cover shadow-xs ${sizeClass}`}
+    />
   ) : (
-    <div className={`flex shrink-0 items-center justify-center rounded-lg bg-[var(--primary)] font-bold text-white ${sizeClass}`}>
+    <div
+      className={`dash-avatar-gradient flex shrink-0 items-center justify-center rounded-full font-bold text-white shadow-xs ${sizeClass}`}
+    >
       {(name || '?').charAt(0).toUpperCase()}
     </div>
   );

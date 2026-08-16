@@ -204,13 +204,29 @@ router.post(
         res.status(403).json({ message: 'This conversation is read-only because the item has been returned.' });
         return;
       }
-      const { text } = req.body;
+      const { text, location: rawLocation } = req.body;
+      let location: { name: string; lat?: number; lng?: number } | undefined;
+      if (rawLocation) {
+        try {
+          const parsed = typeof rawLocation === 'string' ? JSON.parse(rawLocation) : rawLocation;
+          if (parsed && typeof parsed.name === 'string' && parsed.name.trim().length > 0) {
+            location = {
+              name: parsed.name.trim(),
+              lat: typeof parsed.lat === 'number' ? parsed.lat : undefined,
+              lng: typeof parsed.lng === 'number' ? parsed.lng : undefined,
+            };
+          }
+        } catch {
+          // ignore invalid json
+        }
+      }
+
       let imageUrl: string | undefined;
       if (req.file) {
         imageUrl = await uploadBufferToCloudinary(req.file.buffer, req.file.originalname);
       }
-      if (!text && !imageUrl) {
-        res.status(400).json({ message: 'Message must contain text or an image' });
+      if (!text && !imageUrl && !location) {
+        res.status(400).json({ message: 'Message must contain text, an image, or a location' });
         return;
       }
 
@@ -226,6 +242,7 @@ router.post(
         receiverId,
         text,
         imageUrl,
+        location,
       });
 
       chat.lastMessage = message._id as any;
@@ -234,17 +251,23 @@ router.post(
 
       const populated = await message.populate('senderId', 'name avatar');
       if (receiverId) {
+        const notifText = text
+          ? text.slice(0, 120)
+          : location
+          ? `📍 Shared a meeting location: ${location.name}`
+          : 'You received an image message.';
+
         await NotificationModel.create({
           userId: receiverId,
           type: 'Chat',
           title: 'New message',
-          message: text ? text.slice(0, 120) : 'You received an image message.',
+          message: notifText,
           relatedId: chat._id as any,
           relatedModel: 'Chat',
         });
         emitToUser(receiverId, 'notification:new', {
           title: 'New message',
-          message: text ? text.slice(0, 120) : 'You received an image message.',
+          message: notifText,
           type: 'Chat',
           createdAt: new Date().toISOString(),
           isRead: false,

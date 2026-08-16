@@ -209,6 +209,12 @@ export type ChatType = {
   updatedAt: string;
 };
 
+export type MessageLocation = {
+  name: string;
+  lat?: number;
+  lng?: number;
+};
+
 export type MessageType = {
   _id: string;
   chatId: string;
@@ -218,6 +224,7 @@ export type MessageType = {
   itemId?: string;
   text?: string;
   imageUrl?: string;
+  location?: MessageLocation;
   isRead: boolean;
   createdAt: string;
 };
@@ -376,10 +383,11 @@ export const chatsApi = {
   contactOwner: (payload: { itemId: string; ownerId: string; itemType: 'lost' | 'found' }) =>
     api.post<{ chat: ChatType; created: boolean }>('/chats/contact-owner', payload),
   getMessages: (chatId: string) => api.get<{ messages: MessageType[] }>(`/chats/${chatId}/messages`),
-  sendMessage: (chatId: string, text: string, image?: File) => {
+  sendMessage: (chatId: string, text?: string, image?: File, location?: MessageLocation) => {
     const fd = new FormData();
     if (text) fd.append('text', text);
     if (image) fd.append('image', image);
+    if (location) fd.append('location', JSON.stringify(location));
     return api.post<{ message: MessageType }>(`/chats/${chatId}/messages`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

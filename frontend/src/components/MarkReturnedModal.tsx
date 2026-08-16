@@ -27,29 +27,29 @@ export default function MarkReturnedModal({ match, onClose, onSuccess }: MarkRet
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="glass-panel w-full max-w-md overflow-hidden rounded-[22px] p-6 shadow-2xl transition-all space-y-4">
         <div className="flex justify-end">
           <button
             onClick={onClose}
-            className="rounded-xl p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            className="rounded-xl p-1 text-slate-400 hover:text-slate-700 transition"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="text-center space-y-4 pt-1 pb-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 border border-amber-200">
-            <AlertTriangle size={28} />
+        <div className="text-center space-y-3 pt-1 pb-2">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-xs">
+            <AlertTriangle size={26} />
           </div>
 
           <div className="space-y-1">
-            <h3 className="text-lg font-bold text-[#0F172A]">Mark Item Returned?</h3>
-            <p className="text-xs text-[#EF4444] font-semibold">This action cannot be undone.</p>
+            <h3 className="text-lg font-black" style={{ color: 'var(--dash-text-primary)' }}>Mark Item Returned?</h3>
+            <p className="text-xs text-rose-500 font-bold">This action completes the item lifecycle.</p>
           </div>
 
-          <p className="text-xs text-[#64748B] leading-relaxed px-4">
-            Confirming will update the status of both lost and found item reports to <strong>Returned</strong>, archive the active chat conversation, and open the Reward & Rating workflow.
+          <p className="text-xs leading-relaxed px-2" style={{ color: 'var(--dash-text-secondary)' }}>
+            Confirming will update both lost and found item reports to <strong>Returned</strong>, archive this active chat conversation, and unlock the Reward & Rating review workflow.
           </p>
         </div>
 
@@ -57,7 +57,7 @@ export default function MarkReturnedModal({ match, onClose, onSuccess }: MarkRet
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-xs font-semibold text-[#64748B] hover:bg-slate-50 transition"
+            className="dash-btn-secondary flex-1 py-2.5 text-xs font-bold"
           >
             Cancel
           </button>
@@ -65,10 +65,11 @@ export default function MarkReturnedModal({ match, onClose, onSuccess }: MarkRet
             type="button"
             onClick={handleConfirm}
             disabled={submitting}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#1E3A8A] py-2.5 text-xs font-semibold text-white shadow-md hover:bg-[#2563EB] transition disabled:opacity-50"
+            className="dash-btn-primary flex-1 py-2.5 text-xs font-bold shadow-md disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
           >
             {submitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-            Confirm Returned
+            <span>Confirm Returned</span>
           </button>
         </div>
       </div>

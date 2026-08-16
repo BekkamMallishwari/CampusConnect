@@ -11,7 +11,7 @@ export function ThemeToggle({ darkMode, onToggle, className = '' }: ThemeToggleP
     <button
       type="button"
       onClick={onToggle}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--secondary)] transition hover:bg-[var(--surface)] hover:text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] ${className}`}
+      className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/75 bg-white/75 text-[var(--secondary)] shadow-[0_10px_22px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:bg-white/90 hover:text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] ${className}`}
       aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
       title={darkMode ? 'Light mode' : 'Dark mode'}
     >
