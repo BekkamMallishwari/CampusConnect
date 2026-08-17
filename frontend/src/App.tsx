@@ -26,6 +26,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const CommunityPage = lazy(() => import('./pages/CommunityPage'));
 const SearchPage = lazy(() => import('./pages/SearchPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
 
 import ContactFooter from './components/ContactFooter';
 
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage initialMode="login" />} />
         <Route path="/signup" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage initialMode="signup" />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 

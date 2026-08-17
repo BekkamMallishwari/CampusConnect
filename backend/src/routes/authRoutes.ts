@@ -187,28 +187,10 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction): P
   }
 });
 
-// GET /api/auth/google
-router.get('/google', (req: Request, res: Response, next: NextFunction) => {
-  const targetClientUrl = getClientUrl(req);
-  if (!isGoogleOAuthConfigured) {
-    return res.redirect(
-      `${targetClientUrl}/login?error=${encodeURIComponent(
-        'Google Sign-In is not configured for this environment. Please sign in with email and password or add the Google OAuth credentials.',
-      )}`,
-    );
-  }
-
-  return passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    prompt: 'select_account',
-    session: false,
-  })(req, res, next);
-});
-
 const getClientUrl = (req: Request): string => {
   const envOrigins = (
     process.env.CLIENT_URL ||
-    'https://campusconnect-app-eight.vercel.app,http://localhost:5173,http://localhost:5174'
+    'https://campusconnect-app-eight.vercel.app,http://localhost:5173,http://localhost:5174,http://localhost:5175'
   )
     .split(',')
     .map((s) => s.trim())
@@ -238,10 +220,57 @@ const getClientUrl = (req: Request): string => {
   return productionOrigin || envOrigins[0] || 'https://campusconnect-app-eight.vercel.app';
 };
 
+const getTargetClientUrlFromRequest = (req: Request): string => {
+  const state = req.query.state;
+  if (state && typeof state === 'string') {
+    try {
+      const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+      if (decoded?.clientUrl && typeof decoded.clientUrl === 'string') {
+        const origin = decoded.clientUrl.trim().replace(/\/+$/, '');
+        if (
+          origin === 'https://campusconnect-app-eight.vercel.app' ||
+          origin.endsWith('.vercel.app') ||
+          /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)
+        ) {
+          return origin;
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return getClientUrl(req);
+};
+
+// GET /api/auth/google
+router.get('/google', (req: Request, res: Response, next: NextFunction) => {
+  const targetClientUrl =
+    (typeof req.query.clientUrl === 'string' && req.query.clientUrl.trim().replace(/\/+$/, '')) ||
+    (typeof req.query.returnTo === 'string' && req.query.returnTo.trim().replace(/\/+$/, '')) ||
+    getClientUrl(req);
+
+  if (!isGoogleOAuthConfigured) {
+    return res.redirect(
+      `${targetClientUrl}/login?error=${encodeURIComponent(
+        'Google Sign-In is not configured for this environment. Please sign in with email and password or add the Google OAuth credentials.',
+      )}`,
+    );
+  }
+
+  const statePayload = Buffer.from(JSON.stringify({ clientUrl: targetClientUrl })).toString('base64');
+
+  return passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    prompt: 'select_account',
+    session: false,
+    state: statePayload,
+  })(req, res, next);
+});
+
 // GET /api/auth/google/callback
 router.get('/google/callback', (req: Request, res: Response, next: NextFunction) => {
-  const targetClientUrl = getClientUrl(req);
-  console.log('[Google OAuth Callback] Received OAuth callback, processing...');
+  const targetClientUrl = getTargetClientUrlFromRequest(req);
+  console.log('[Google OAuth Callback] Received OAuth callback, redirecting to frontend origin:', targetClientUrl);
   
   passport.authenticate('google', { session: false }, (err: any, user: any, info: any) => {
     if (err) {
