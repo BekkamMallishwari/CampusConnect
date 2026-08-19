@@ -374,3 +374,41 @@ export const sendReportClosedEmail = async (
   `;
   await safeSendEmail(recipientEmail, `✅ Report Closed – "${itemName}"`, emailWrapper(body));
 };
+
+// 11. NEW MESSAGE NOTIFICATION EMAIL
+export interface NewMessageEmailData {
+  recipientEmail: string;
+  recipientName: string;
+  senderName: string;
+  messagePreview?: string;
+  chatId: string;
+}
+
+export const sendNewMessageEmail = async (data: NewMessageEmailData): Promise<void> => {
+  const preview = data.messagePreview
+    ? data.messagePreview.length > 100
+      ? `${data.messagePreview.slice(0, 100)}...`
+      : data.messagePreview
+    : 'You received a new attachment or location update.';
+
+  const body = `
+    <p style="margin:0 0 6px;font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;">New Message</p>
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#f1f5f9;line-height:1.3;">
+      💬 ${data.senderName} sent you a message
+    </h1>
+    <div style="background:#1e293b;border-radius:12px;padding:20px;margin-bottom:24px;border-left:4px solid #3b82f6;">
+      <p style="margin:0;font-size:14px;color:#cbd5e1;line-height:1.6;font-style:italic;">
+        "${preview}"
+      </p>
+    </div>
+    <p style="margin:0 0 16px;font-size:13px;color:#94a3b8;line-height:1.6;">
+      Log in to CampusConnect to reply safely in your private chat session.
+    </p>
+    ${ctaButton(`${APP_URL()}/messages/${data.chatId}`, 'Open Conversation')}
+  `;
+  await safeSendEmail(
+    data.recipientEmail,
+    `💬 New message from ${data.senderName} on CampusConnect`,
+    emailWrapper(body),
+  );
+};

@@ -342,6 +342,11 @@ const handleVerifyPayment = async (req: AuthRequest, res: Response): Promise<voi
       return;
     }
 
+    if (req.user?.userId && match.lostUserId.toString() !== req.user.userId) {
+      res.status(403).json({ success: false, message: 'Only the item owner can make the reward payment' });
+      return;
+    }
+
     await finalizePaymentSuccess({ payment, match, razorpayPaymentId: razorpay_payment_id });
 
     res.json({
@@ -462,51 +467,7 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response, next: Ne
   }
 });
 
-router.post('/confirm', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { paymentId } = req.body;
-    const payment = await PaymentModel.findById(paymentId);
-    if (!payment) {
-      res.status(404).json({ message: 'Payment not found' });
-      return;
-    }
 
-    const paymentUserId = getIdString(payment.user) || getIdString(payment.userId) || getIdString(payment.lostUserId);
-    if (paymentUserId !== req.user!.userId) {
-      res.status(403).json({ message: 'Access denied' });
-      return;
-    }
-
-    payment.paymentStatus = 'SUCCESS';
-    payment.status = 'Completed';
-    payment.paidAt = new Date();
-    payment.receiptUrl = `/payments/receipt/${payment._id.toString()}`;
-    await payment.save();
-
-    const match = await MatchModel.findById(payment.matchId);
-    if (match) {
-      match.rewardStatus = 'Paid';
-      match.rewardPaid = true;
-      match.matchStatus = 'PAYMENT_COMPLETED';
-      match.paymentStatus = 'PAID';
-      match.contactShared = true;
-      match.paymentId = payment._id as any;
-      match.paidAt = new Date();
-      await match.save();
-
-      const ownerUserId = match.lostUserId.toString();
-      const finderUserId = match.foundUserId.toString();
-      emitToUser(ownerUserId, 'payment:success', { matchId: match._id.toString() });
-      emitToUser(finderUserId, 'payment:success', { matchId: match._id.toString() });
-      emitToUser(finderUserId, 'match:updated', { matchId: match._id.toString() });
-      emitToUser(ownerUserId, 'match:updated', { matchId: match._id.toString() });
-    }
-
-    res.json({ message: 'Payment confirmed', payment });
-  } catch (error) {
-    next(error);
-  }
-});
 
 router.get('/', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {

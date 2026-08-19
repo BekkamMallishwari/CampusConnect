@@ -92,7 +92,7 @@ export const RewardNegotiation: React.FC<RewardNegotiationProps> = ({
             <div className="text-2xl font-black" style={{ color: 'var(--dash-text-primary)' }}>₹{initialAmount}</div>
           )}
           <div className={`text-[10.5px] font-extrabold uppercase tracking-wider mt-1 ${isLocked ? 'text-emerald-600' : rewardStatus === 'Rejected' ? 'text-rose-600' : 'text-amber-500'}`}>
-            Status: {rewardStatus}
+            STATUS: {rewardStatus ? rewardStatus.toUpperCase() : 'PENDING'}
           </div>
         </div>
       </div>

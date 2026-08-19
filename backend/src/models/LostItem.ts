@@ -64,7 +64,7 @@ const lostItemSchema = new Schema<ILostItem>(
     isClaimed: { type: Boolean, default: false },
     claimedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     returnedAt: { type: Date },
-    rewardAmount: { type: Number, required: true, min: 1 },
+    rewardAmount: { type: Number, default: 0, min: 0 },
     rewardStatus: { 
       type: String, 
       enum: ['Pending', 'Negotiating', 'Accepted', 'Declined'],

@@ -3,6 +3,40 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @import 'leaflet/dist/leaflet.css';
 
+/* ─── Hide Test Mode Ribbons / Badges ─────────────────────────────────────── */
+.razorpay-ribbon,
+.razorpay-testmode,
+.razorpay-test-mode,
+.rzp-testmode,
+.rzp-test-mode,
+[class*="razorpay-ribbon"],
+[class*="test-mode-ribbon"],
+[class*="testmode-ribbon"],
+[class*="test-mode"],
+[class*="testmode"],
+[id*="test-mode-ribbon"],
+[id*="testmode"],
+[id*="test-mode"],
+[data-test-mode-ribbon],
+.test-mode-ribbon,
+div[style*="rotate(45deg)"],
+div[style*="rotate(-45deg)"],
+div[style*="transform: rotate(45deg)"],
+div[style*="transform: rotate(-45deg)"],
+div[style*="position: fixed"][style*="rotate(45deg)"],
+div[style*="position: absolute"][style*="rotate(45deg)"],
+div[style*="position: fixed"][style*="rotate(-45deg)"],
+div[style*="position: absolute"][style*="rotate(-45deg)"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  z-index: -99999 !important;
+}
+
 /* ─── Design System Tokens ─────────────────────────────────────────────────── */
 
 :root {

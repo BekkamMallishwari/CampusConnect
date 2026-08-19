@@ -202,4 +202,6 @@ const matchSchema = new Schema<IMatch>(
   { timestamps: true },
 );
 
+matchSchema.index({ lostItemId: 1, foundItemId: 1 }, { unique: true });
+
 export default mongoose.models.Match || mongoose.model<IMatch>('Match', matchSchema);

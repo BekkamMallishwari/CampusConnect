@@ -24,8 +24,6 @@ function PaymentCallbackPage() {
   const [matchId, setMatchId] = useState<string | null>(null);
 
   const paymentId = searchParams.get('paymentId');
-  const sessionId = searchParams.get('session_id');
-  const simulated = searchParams.get('simulated');
 
   useEffect(() => {
     if (!paymentId) {
@@ -33,24 +31,25 @@ function PaymentCallbackPage() {
       return;
     }
 
-    const confirmPayment = async () => {
+    const checkPayment = async () => {
       try {
-        if (simulated === 'true') {
-          await new Promise((resolve) => setTimeout(resolve, 1200));
+        const res = await paymentsApi.getById(paymentId);
+        const p = res.data?.payment;
+        if (p && (p.paymentStatus === 'SUCCESS' || p.paymentStatus === 'Completed')) {
+          setMatchId((p as any)?.matchId || null);
+          setStatus('success');
+        } else {
+          setStatus('verifying');
         }
-        const res = await paymentsApi.confirmPayment(paymentId, sessionId || undefined);
-        setMatchId((res.data.payment as any)?.matchId || null);
-        setStatus('success');
-        toast.success('Escrow payment verified successfully!');
       } catch (err: any) {
         setStatus('error');
         const errMsg = err?.response?.data?.message || err?.message || String(err);
-        toast.error(`Verification Failed: ${errMsg}`);
+        toast.error(`Check Failed: ${errMsg}`);
       }
     };
 
-    confirmPayment();
-  }, [paymentId, sessionId, simulated]);
+    checkPayment();
+  }, [paymentId]);
 
   return (
     <div className="flex min-h-[calc(100vh-180px)] items-center justify-center py-8">

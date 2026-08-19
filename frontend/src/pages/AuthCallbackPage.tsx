@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ export default function AuthCallbackPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const hasProcessedAuthRef = useRef(false);
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -16,9 +17,11 @@ export default function AuthCallbackPage() {
     const errorParam = searchParams.get('error');
 
     if (errorParam) {
+      if (hasProcessedAuthRef.current) return;
+      hasProcessedAuthRef.current = true;
       const decodedError = decodeURIComponent(errorParam);
       setErrorMessage(decodedError);
-      toast.error(decodedError);
+      toast.error(decodedError, { id: 'google-auth-error' });
       const timer = setTimeout(() => {
         navigate('/login', { replace: true });
       }, 2000);
@@ -26,13 +29,15 @@ export default function AuthCallbackPage() {
     }
 
     if (token && userParam) {
+      if (hasProcessedAuthRef.current) return;
+      hasProcessedAuthRef.current = true;
       try {
         const parsedUser = JSON.parse(decodeURIComponent(userParam));
         login(token, parsedUser);
-        toast.success('Successfully authenticated with Google!');
+        toast.success('Successfully authenticated with Google!', { id: 'google-auth-success' });
         navigate('/dashboard', { replace: true });
       } catch {
-        toast.error('Authentication processing failed. Please log in again.');
+        toast.error('Authentication processing failed. Please log in again.', { id: 'google-auth-error' });
         navigate('/login', { replace: true });
       }
     } else {

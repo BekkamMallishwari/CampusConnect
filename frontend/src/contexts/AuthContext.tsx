@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi, type UserType } from '../lib/api';
+import { connectSocket, disconnectSocket } from '../lib/socket';
 
 type AuthContextType = {
   user: UserType | null;
@@ -25,6 +26,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (storedToken && storedUser) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
+        connectSocket(storedToken);
         
         try {
           // Sync with backend to ensure the token is still valid
@@ -48,11 +50,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('campusconnect_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    connectSocket(newToken);
   };
 
   const logout = () => {
     localStorage.removeItem('campusconnect_token');
     localStorage.removeItem('campusconnect_user');
+    disconnectSocket();
     setToken(null);
     setUser(null);
   };

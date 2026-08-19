@@ -5,9 +5,12 @@ import MessageModel from '../models/Message';
 import LostItemModel from '../models/LostItem';
 import FoundItemModel from '../models/FoundItem';
 import NotificationModel from '../models/Notification';
+import UserModel from '../models/User';
 import { requireAuth, AuthRequest } from '../middleware/authMiddleware';
 import { upload, uploadBufferToCloudinary } from '../services/cloudinaryService';
 import { emitToUser, emitToChat } from '../services/socketHub';
+import { sendNewMessageEmail } from '../services/emailService';
+import { createAndDispatchMessage } from '../services/messageService';
 
 const router = Router();
 
@@ -191,19 +194,6 @@ router.post(
   upload.single('image'),
   async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const chat = await ChatModel.findById(req.params.chatId);
-      if (!chat) {
-        res.status(404).json({ message: 'Chat not found' });
-        return;
-      }
-      if (!isParticipant(chat, req.user!.userId)) {
-        res.status(403).json({ message: 'Access denied' });
-        return;
-      }
-      if (chat.isClosed) {
-        res.status(403).json({ message: 'This conversation is read-only because the item has been returned.' });
-        return;
-      }
       const { text, location: rawLocation } = req.body;
       let location: { name: string; lat?: number; lng?: number } | undefined;
       if (rawLocation) {
@@ -225,59 +215,26 @@ router.post(
       if (req.file) {
         imageUrl = await uploadBufferToCloudinary(req.file.buffer, req.file.originalname);
       }
-      if (!text && !imageUrl && !location) {
-        res.status(400).json({ message: 'Message must contain text, an image, or a location' });
-        return;
-      }
 
-      const receiverId = chat.participants.find(
-        (participant: unknown) => (participant as { toString(): string }).toString() !== req.user!.userId,
-      )?.toString();
-
-      const message = await MessageModel.create({
-        chatId: req.params.chatId,
-        conversationId: req.params.chatId,
-        itemId: chat.itemId,
+      const { message } = await createAndDispatchMessage({
+        chatId: req.params.chatId as string,
         senderId: req.user!.userId,
-        receiverId,
         text,
         imageUrl,
         location,
       });
 
-      chat.lastMessage = message._id as any;
-      chat.updatedAt = new Date();
-      await chat.save();
-
-      const populated = await message.populate('senderId', 'name avatar');
-      if (receiverId) {
-        const notifText = text
-          ? text.slice(0, 120)
-          : location
-          ? `📍 Shared a meeting location: ${location.name}`
-          : 'You received an image message.';
-
-        await NotificationModel.create({
-          userId: receiverId,
-          type: 'Chat',
-          title: 'New message',
-          message: notifText,
-          relatedId: chat._id as any,
-          relatedModel: 'Chat',
-        });
-        emitToUser(receiverId, 'notification:new', {
-          title: 'New message',
-          message: notifText,
-          type: 'Chat',
-          createdAt: new Date().toISOString(),
-          isRead: false,
-        });
+      res.status(201).json({ message });
+    } catch (error: any) {
+      if (error?.message === 'Chat not found.') {
+        res.status(404).json({ message: error.message });
+      } else if (error?.message?.includes('Access denied') || error?.message?.includes('read-only')) {
+        res.status(403).json({ message: error.message });
+      } else if (error?.message?.includes('must contain text')) {
+        res.status(400).json({ message: error.message });
+      } else {
+        next(error);
       }
-
-      emitToChat(req.params.chatId as string, 'new-message', populated);
-      res.status(201).json({ message: populated });
-    } catch (error) {
-      next(error);
     }
   },
 );

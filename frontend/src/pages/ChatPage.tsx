@@ -14,12 +14,10 @@ import {
   Loader2,
   ShieldCheck,
   CheckCircle,
-  Gift,
   Search,
   CalendarClock,
   MapPin,
   Archive,
-  CreditCard,
   ExternalLink,
   Crosshair,
 } from 'lucide-react';
@@ -201,7 +199,6 @@ export default function ChatPage() {
     }
   };
 
-  const [showPayRewardSection, setShowPayRewardSection] = useState(false);
   const [respondingMeeting, setRespondingMeeting] = useState(false);
   // Old inline scheduling state removed
   const [downloadingReceipt, setDownloadingReceipt] = useState(false);
@@ -253,6 +250,7 @@ export default function ChatPage() {
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const typingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const selectedChatRef = useRef<ChatType | null>(null);
@@ -312,9 +310,14 @@ export default function ChatPage() {
     };
   }, [imagePreview]);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((smooth = true) => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTo({
+          top: messagesContainerRef.current.scrollHeight,
+          behavior: smooth ? 'smooth' : 'auto',
+        });
+      }
     }, 80);
   }, []);
 
@@ -332,6 +335,9 @@ export default function ChatPage() {
       setUnreadCounts((prev) => ({ ...prev, [chat._id]: 0 }));
       socket?.emit('message-read', { chatId: chat._id });
       setChats((prev) => prev.map((c) => (c._id === chat._id ? { ...c, unreadCount: 0 } : c)));
+
+      // Keep workflow and header fully visible at top of viewport
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
 
       // Fetch linked match details if match chat
       const matchObj = typeof chat.matchId === 'object' ? (chat.matchId as MatchType) : null;
@@ -357,7 +363,7 @@ export default function ChatPage() {
       try {
         const res = await chatsApi.getMessages(chat._id);
         setMessages(res.data.messages);
-        scrollToBottom();
+        scrollToBottom(false);
       } catch {
         toast.error('Failed to load message history.');
       }
@@ -617,611 +623,239 @@ export default function ChatPage() {
   const activeThread = selectedChat?.participants.find((p) => (p.id ?? (p as any)._id) !== user?.id) || null;
 
   return (
-    <PageTransition className="glass-panel flex h-[calc(100vh-140px)] min-h-[38rem] overflow-hidden rounded-[20px] shadow-lg">
-      {/* Left Sidebar: Threads & Search */}
-      <div className="hidden w-80 flex-col border-r lg:flex" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-        <div className="space-y-3 border-b p-4" style={{ borderColor: 'var(--glass-border)' }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-extrabold tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>Secure Messages</h2>
-            <StatusDot status={connectionStatus} />
-          </div>
+    <PageTransition className="w-full space-y-6">
+      <ConnectionBanner status={connectionStatus} />
 
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--dash-text-muted)' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search conversations..."
-              className="glass-input w-full pl-8 pr-3 py-2 text-xs font-medium"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-1.5 overflow-y-auto p-2.5">
-          {filteredChats.length === 0 ? (
-            <div className="py-12 px-4 text-center">
-              <MessageCircle size={28} className="mx-auto mb-2 text-indigo-500 opacity-60" />
-              <p className="text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>No conversations yet</p>
-              <p className="mt-1 text-[11px] leading-relaxed" style={{ color: 'var(--dash-text-secondary)' }}>
-                Verified item matches will allow messaging.
-              </p>
-            </div>
-          ) : (
-            filteredChats.map((chat) => {
-              const counterpart = chat.participants.find((p) => (p.id ?? (p as any)._id) !== user?.id);
-              const active = selectedChat?._id === chat._id;
-              const unread = unreadCounts[chat._id] ?? chat.unreadCount ?? 0;
-
-              return (
-                <button
-                  key={chat._id}
-                  onClick={() => handleChatSelect(chat)}
-                  className={`glass-action-card flex w-full items-center gap-3 p-3 text-left transition-all ${
-                    active
-                      ? 'border-indigo-500/40 bg-indigo-500/10 shadow-sm'
-                      : ''
-                  }`}
-                >
-                  <div className="relative flex-shrink-0">
-                    {counterpart?.avatar ? (
-                      <img
-                        src={counterpart.avatar}
-                        alt={counterpart.name}
-                        className="h-9 w-9 rounded-xl object-cover border border-white/70 shadow-xs"
-                      />
-                    ) : (
-                      <div className="dash-avatar-gradient flex h-9 w-9 items-center justify-center rounded-xl text-xs font-black uppercase text-white shadow-xs">
-                        {counterpart?.name.charAt(0) ?? '?'}
-                      </div>
-                    )}
-                    {counterpart?.isOnline && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="truncate text-xs font-bold" style={{ color: 'var(--dash-text-primary)' }}>{counterpart?.name}</p>
-                      <span className="text-[10px]" style={{ color: 'var(--dash-text-muted)' }}>
-                        {chat.updatedAt ? new Date(chat.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                      </span>
-                    </div>
-                    <p className="truncate text-[11px] mt-0.5" style={{ color: 'var(--dash-text-secondary)' }}>
-                      {chat.isClosed
-                        ? 'Archived Chat'
-                        : chat.lastMessage?.text || (chat.lastMessage?.imageUrl ? '📎 Attachment' : 'Secure Chat')}
-                    </p>
-                  </div>
-
-                  {unread > 0 && !active && (
-                    <span className="unread-badge shrink-0">
-                      {unread}
-                    </span>
-                  )}
-                </button>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Right Main Panel */}
-      <div className="flex min-w-0 flex-1 flex-col" style={{ background: 'var(--glass-bg-subtle)' }}>
-        <ConnectionBanner status={connectionStatus} />
-
-        {selectedChat ? (
-          <>
-            <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
-              <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#64748B]">Current chat</p>
-                <p className="truncate text-sm font-bold text-[#0F172A]">{activeThread?.name || 'Conversation'}</p>
+      {!selectedChat ? (
+        /* When No Chat is Selected (e.g., initial /messages view) */
+        <div className="glass-panel rounded-[24px] shadow-lg border p-6 sm:p-8">
+          <div className="space-y-4 max-w-2xl mx-auto">
+            <div className="flex items-center justify-between border-b pb-4" style={{ borderColor: 'var(--glass-border)' }}>
+              <div>
+                <h2 className="text-lg font-extrabold tracking-tight" style={{ color: 'var(--dash-text-primary)' }}>Secure Messages</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Select a verified match conversation to start coordinating</p>
               </div>
-              <Link
-                to="/messages"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#1E3A8A]"
-              >
-                Back
-              </Link>
+              <StatusDot status={connectionStatus} />
             </div>
 
-            {/* Header with Stepper & Workflow Controls */}
-            {(() => {
-              const currentCounterpart = activeThread;
-              const isOwner = currentMatch?.lostUserId._id === user?.id;
-              const isFinder = currentMatch?.foundUserId._id === user?.id;
-              const meetingConfirmed = currentMatch?.meetingStatus === 'CONFIRMED';
-              const meetingPending = currentMatch?.meetingStatus === 'PENDING';
-              const verificationVerified = currentMatch?.verificationStatus === 'VERIFIED';
-              // Use the accepted reward amount from DB — never fall back to a hardcoded value
-              const rewardAmt = currentMatch?.rewardAmount ?? (currentMatch?.foundItemId as any)?.rewardAmount ?? 0;
-              const paymentCompleted = currentMatch?.paymentStatus === 'PAID' || currentMatch?.rewardPaid || currentMatch?.rewardStatus === 'Paid';
-              // Pay button only shows after reward is explicitly Accepted AND rewardAmt > 0
-              const rewardAccepted = currentMatch?.rewardStatus === 'Accepted' || currentMatch?.rewardStatus === 'Paid';
-              const canPayReward = Boolean(
-                isOwner &&
-                verificationVerified &&
-                !paymentCompleted &&
-                rewardAmt > 0 &&
-                rewardAccepted
-              );
-              // If there's no reward requested at all (rewardAmt === 0 and no reward doc), skip payment
-              const canMarkReturned = Boolean(isFinder && meetingConfirmed && verificationVerified && (paymentCompleted || rewardAmt === 0) && !currentMatch?.completed);
+            <div className="relative">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--dash-text-muted)' }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search conversations by name or item..."
+                className="glass-input w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm font-medium rounded-xl"
+              />
+            </div>
 
-              return (
-                <div className="border-b border-slate-200 bg-white p-4 space-y-3">
-                  {/* Top Bar: Participant Info & Action Buttons */}
-                  <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="relative">
-                        {currentCounterpart?.avatar ? (
+            <div className="space-y-2 pt-2">
+              {filteredChats.length === 0 ? (
+                <div className="py-16 text-center space-y-3">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[var(--primary)] dark:bg-blue-950/40 mx-auto">
+                    <MessageCircle size={28} />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text)]">No conversations yet</h3>
+                  <p className="max-w-xs text-xs text-[var(--secondary)] leading-relaxed mx-auto">
+                    Verified item matches will allow direct messaging here.
+                  </p>
+                </div>
+              ) : (
+                filteredChats.map((chat) => {
+                  const counterpart = chat.participants.find((p) => (p.id ?? (p as any)._id) !== user?.id);
+                  const unread = unreadCounts[chat._id] ?? chat.unreadCount ?? 0;
+
+                  return (
+                    <button
+                      key={chat._id}
+                      onClick={() => handleChatSelect(chat)}
+                      className="glass-action-card flex w-full items-center gap-4 p-4 text-left rounded-2xl hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all shadow-xs"
+                    >
+                      <div className="relative flex-shrink-0">
+                        {counterpart?.avatar ? (
                           <img
-                            src={currentCounterpart.avatar}
-                            alt={currentCounterpart.name}
-                            className="h-10 w-10 rounded-xl object-cover border border-slate-200"
+                            src={counterpart.avatar}
+                            alt={counterpart.name}
+                            className="h-12 w-12 rounded-2xl object-cover border border-white/70 shadow-xs"
                           />
                         ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1E3A8A] text-sm font-bold text-white">
-                            {currentCounterpart?.name.charAt(0) ?? '?'}
+                          <div className="dash-avatar-gradient flex h-12 w-12 items-center justify-center rounded-2xl text-sm font-black uppercase text-white shadow-xs">
+                            {counterpart?.name.charAt(0) ?? '?'}
                           </div>
                         )}
-                        {currentCounterpart?.isOnline && (
-                          <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+                        {counterpart?.isOnline && (
+                          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="truncate text-sm font-bold text-[#0F172A]">{currentCounterpart?.name}</h3>
-                          {verificationVerified && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#10B981]">
-                              <ShieldCheck size={12} /> Verified
-                            </span>
-                          )}
-                          {currentMatch?.completed && (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-[#64748B]">
-                              Returned
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[11px] text-[#64748B]">
-                          {currentCounterpart?.isOnline ? 'Online' : 'Offline'}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {currentMatch && (
-                        <Link
-                          to={`/matches/${currentMatch._id}`}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E3A8A] hover:bg-slate-50 transition"
-                        >
-                          Review Match
-                        </Link>
-                      )}
-
-                      {currentMatch && !currentMatch.completed && (
-                        <>
-                          <button
-                            onClick={() => setShowMeetingScheduler((v) => !v)}
-                            className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
-                              meetingConfirmed
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
-                            }`}
-                          >
-                            <CalendarClock size={13} /> {meetingConfirmed ? 'Meeting Confirmed' : 'Schedule Meeting'}
-                          </button>
-
-                          <button
-                            onClick={() => setShowVerificationModal(true)}
-                            className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
-                              verificationVerified
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                : 'border-blue-200 bg-blue-50 text-[#2563EB] hover:bg-blue-100'
-                            }`}
-                          >
-                            <ShieldCheck size={13} /> {verificationVerified ? 'Verified' : 'Verify Ownership'}
-                          </button>
-
-                          {/* Pay Reward Button for Owner — only after reward is Accepted */}
-                          {canPayReward && (
-                            <button
-                              onClick={() => setShowPayRewardSection((v) => !v)}
-                              className="inline-flex items-center gap-1 rounded-xl bg-[#2563EB] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition"
-                            >
-                              <CreditCard size={13} /> Pay Reward{rewardAmt > 0 ? ` (₹${rewardAmt})` : ''}
-                            </button>
-                          )}
-
-                          {/* Reward Negotiation Button */}
-                          {currentReward && ['Pending', 'Negotiating'].includes(currentReward.status) && (
-                            <button
-                              onClick={() => setShowPayRewardSection((v) => !v)}
-                              className="inline-flex items-center gap-1 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition"
-                            >
-                              <Gift size={13} /> Reward Offer: ₹{currentReward.requestedAmount}
-                            </button>
-                          )}
-
-                          {/* Mark Returned - Finder only, enabled when meeting confirmed + verified + (paid OR no reward) */}
-                          {isFinder && (
-                            <button
-                              disabled={!canMarkReturned}
-                              onClick={() => {
-                                if (!meetingConfirmed) {
-                                  toast.error('Meeting must be confirmed by finder first.');
-                                  return;
-                                }
-                                if (!verificationVerified) {
-                                  toast.error('Ownership must be verified first before marking returned.');
-                                  return;
-                                }
-                                if (rewardAmt > 0 && !paymentCompleted) {
-                                  toast.error('Owner reward payment must be completed first.');
-                                  return;
-                                }
-                                setShowMarkReturnedModal(true);
-                              }}
-                              className={`inline-flex items-center gap-1 rounded-xl px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition ${
-                                canMarkReturned
-                                  ? 'bg-[#10B981] hover:bg-emerald-600'
-                                  : 'bg-slate-300 cursor-not-allowed'
-                              }`}
-                              title={
-                                !meetingConfirmed
-                                  ? 'Confirm meeting first'
-                                  : !verificationVerified
-                                  ? 'Verify ownership first'
-                                  : rewardAmt > 0 && !paymentCompleted
-                                  ? 'Wait for owner reward payment'
-                                  : 'Mark item as returned'
-                              }
-                            >
-                              {canMarkReturned ? 'Mark Item Returned ✅' : 'Mark Item Returned 🔒'}
-                            </button>
-                          )}
-                        </>
-                      )}
-
-                      {currentMatch && currentMatch.completed && (
-                        <button
-                          onClick={() => setShowRewardRatingModal(true)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-[#1E3A8A] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-[#2563EB] transition"
-                        >
-                          <Gift size={13} /> Rate & Review
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* ─── Workflow Stepper Header ───────────────────────────────── */}
-                  <div className="flex items-center justify-between gap-1 overflow-x-auto rounded-xl border border-slate-200/80 bg-[#F8FAFC] px-2 py-2.5">
-                    {[
-                      { label: 'Chat', active: true, completed: true },
-                      { label: 'Meeting', active: Boolean(meetingPending), completed: Boolean(meetingConfirmed) },
-                      { label: 'Verification', active: Boolean(meetingConfirmed && !verificationVerified), completed: Boolean(verificationVerified) },
-                      { label: 'Payment', active: Boolean(verificationVerified && !paymentCompleted), completed: Boolean(paymentCompleted) },
-                      { label: 'Return', active: Boolean(verificationVerified && paymentCompleted && !currentMatch?.completed), completed: Boolean(currentMatch?.completed) },
-                      { label: 'Completed', active: Boolean(currentMatch?.completed), completed: Boolean(currentMatch?.completed) },
-                    ].map((step, idx) => {
-                      let badgeStyle = 'bg-slate-200 text-slate-500';
-                      let textStyle = 'text-slate-400 font-medium';
-                      if (step.completed) {
-                        badgeStyle = 'bg-[#16A34A] text-white font-bold';
-                        textStyle = 'text-[#16A34A] font-bold';
-                      } else if (step.active) {
-                        badgeStyle = 'bg-[#2563EB] text-white font-bold animate-pulse';
-                        textStyle = 'text-[#2563EB] font-bold';
-                      }
-
-                      return (
-                        <div key={idx} className="flex items-center gap-1.5 flex-1 min-w-max">
-                          <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${badgeStyle}`}>
-                            {step.completed ? '✓' : idx + 1}
-                          </div>
-                          <span className={`text-[11px] ${textStyle}`}>{step.label}</span>
-                          {idx < 5 && (
-                            <div className={`h-0.5 flex-1 min-w-3 ${step.completed ? 'bg-[#16A34A]' : 'bg-slate-200'}`} />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* ─── Meeting Request Banner (Finder Action Required) ─────── */}
-                  {currentMatch && meetingPending && isFinder && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-amber-900 flex items-center gap-1.5">
-                          <CalendarClock size={15} /> Proposed Meeting Request
-                        </span>
-                        <span className="rounded-md bg-amber-200/80 px-2 py-0.5 text-[10px] font-bold text-amber-900">
-                          Response Required
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 text-slate-700 font-medium sm:grid-cols-2">
-                        <p className="flex items-center gap-1">
-                          <MapPin size={13} className="text-amber-600" /> <strong>Location:</strong> {currentMatch.meetingLocation}
-                        </p>
-                        <p className="flex items-center gap-1">
-                          <Clock size={13} className="text-amber-600" /> <strong>Time:</strong> {currentMatch.meetingTime ? new Date(currentMatch.meetingTime).toLocaleString() : 'TBD'}
-                        </p>
-                      </div>
-                      {currentMatch.meetingCoordinates && (
-                        <div className="h-24 w-full rounded-lg overflow-hidden border border-amber-200 mt-2 z-0">
-                          <MapContainer center={[currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} zoom={15} className="h-full w-full" zoomControl={false} dragging={false} scrollWheelZoom={false}>
-                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                            <Marker position={[currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} icon={customIcon} />
-                          </MapContainer>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          disabled={respondingMeeting}
-                          onClick={() => handleRespondMeeting('accept')}
-                          className="rounded-lg bg-[#16A34A] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition disabled:opacity-50"
-                        >
-                          {respondingMeeting ? 'Saving...' : 'Accept Meeting'}
-                        </button>
-                        <button
-                          disabled={respondingMeeting}
-                          onClick={() => handleRespondMeeting('decline')}
-                          className="rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-700 transition disabled:opacity-50"
-                        >
-                          Decline Meeting
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ─── Meeting Confirmed Banner (Read Only) ─────────────────── */}
-                  {currentMatch && meetingConfirmed && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-emerald-900 flex items-center gap-1.5">
-                          <CheckCircle size={15} className="text-[#16A34A]" /> Meeting Confirmed
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-md bg-emerald-200/80 px-2 py-0.5 text-[10px] font-bold text-emerald-900 border border-emerald-300">
-                            Confirmed ✅
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="truncate text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>{counterpart?.name}</p>
+                          <span className="text-[11px]" style={{ color: 'var(--dash-text-muted)' }}>
+                            {chat.updatedAt ? new Date(chat.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                           </span>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-2 text-slate-700 pt-0.5 font-medium sm:grid-cols-2">
-                        <p className="flex items-center gap-1">
-                          <MapPin size={12} className="text-[#16A34A]" /> <strong>Location:</strong> {currentMatch.meetingLocation}
-                        </p>
-                        <p className="flex items-center gap-1">
-                          <Clock size={12} className="text-[#16A34A]" /> <strong>Time:</strong> {currentMatch.meetingTime ? new Date(currentMatch.meetingTime).toLocaleString() : 'TBD'}
+                        <p className="truncate text-xs mt-1" style={{ color: 'var(--dash-text-secondary)' }}>
+                          {chat.isClosed
+                            ? 'Archived Chat'
+                            : chat.lastMessage?.text || (chat.lastMessage?.imageUrl ? '📎 Attachment' : 'Secure Chat')}
                         </p>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-2">
-                        {currentMatch.meetingCoordinates && (
-                          <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${currentMatch.meetingCoordinates.lat},${currentMatch.meetingCoordinates.lng}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-emerald-700 transition"
-                          >
-                            <MapPin size={13} /> Navigate to Meeting
-                          </a>
-                        )}
-                        <button
-                          onClick={() => setSharingLiveLocation(!sharingLiveLocation)}
-                          className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-bold shadow-sm transition ${
-                            sharingLiveLocation
-                              ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
-                              : 'bg-blue-600 text-white hover:bg-blue-700'
-                          }`}
-                        >
-                          <MapPin size={13} className={sharingLiveLocation ? 'animate-pulse' : ''} />
-                          {sharingLiveLocation ? 'Stop Live Location' : 'Share My Live Location'}
-                        </button>
-                        {partnerSharingLiveLocation && (
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-blue-100 px-2 py-1.5 text-[10px] font-bold text-blue-800 border border-blue-200 animate-pulse">
-                            <MapPin size={11} /> Partner is sharing location
-                          </span>
-                        )}
-                      </div>
-                      {currentMatch.meetingCoordinates && (
-                        <div className="h-48 w-full rounded-lg overflow-hidden border border-emerald-200 mt-2 z-0 relative">
-                          <MapContainer 
-                            center={myLiveLocation || [currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} 
-                            zoom={16} 
-                            className="h-full w-full"
-                          >
-                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                            <Marker position={[currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} icon={customIcon} />
-                            
-                            {myLiveLocation && (
-                              <Marker 
-                                position={myLiveLocation} 
-                                icon={new L.Icon({
-                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
-                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                                  iconSize: [25, 41], iconAnchor: [12, 41]
-                                })} 
-                              />
-                            )}
-                            
-                            {partnerLiveLocation && (
-                              <Marker 
-                                position={partnerLiveLocation} 
-                                icon={new L.Icon({
-                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
-                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                                  iconSize: [25, 41], iconAnchor: [12, 41]
-                                })} 
-                              />
-                            )}
-                          </MapContainer>
-                        </div>
+
+                      {unread > 0 && (
+                        <span className="unread-badge shrink-0">
+                          {unread}
+                        </span>
                       )}
-                    </div>
-                  )}
-
-                  {/* ─── Unified Reward Payment Card ──────────────────────────── */}
-                  {currentMatch && verificationVerified && rewardAmt > 0 && rewardAccepted && !paymentCompleted && showPayRewardSection && (
-                    <div className="mt-4">
-                      <RewardPayment
-                        matchId={currentMatch._id}
-                        defaultAmount={rewardAmt}
-                        finderName={currentMatch.foundUserId.name}
-                        itemName={currentMatch.lostItemId.itemName}
-                        paymentStatus={currentMatch.paymentStatus}
-                        isOwner={isOwner}
-                        onPaymentSuccess={() => {
-                          matchesApi.getById(currentMatch._id).then((res) => setCurrentMatch(res.data.match));
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* ─── Reward Negotiation Section ──────────────────────────── */}
-                  {currentMatch && currentMatch.rewardStatus !== 'Paid' && (
-                    <div className="mt-4">
-                      <RewardNegotiation
-                        matchId={currentMatch._id}
-                        initialAmount={currentMatch.rewardAmount || 0}
-                        rewardStatus={currentMatch.rewardStatus}
-                        isOwner={isOwner}
-                        onUpdate={() => {
-                          matchesApi.getById(currentMatch._id).then((res) => setCurrentMatch(res.data.match));
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* ─── Payment Completed Banner ────────────────────────────── */}
-                  {currentMatch && paymentCompleted && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs flex flex-wrap gap-2 items-center justify-between text-emerald-900 font-semibold">
-                      <span className="flex items-center gap-1.5">
-                        <CheckCircle size={15} className="text-[#16A34A]" /> Reward Payment Completed{rewardAmt > 0 ? ` (₹${rewardAmt})` : ''}
-                        <span className="text-[10px] bg-emerald-200 px-2 py-0.5 rounded-md font-bold ml-1">PAID</span>
-                      </span>
-                      {currentMatch.paymentId && (
-                        <button
-                          onClick={handleDownloadReceipt}
-                          disabled={downloadingReceipt}
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-1.5 text-[11px] font-bold text-emerald-800 hover:bg-emerald-200 transition disabled:opacity-50"
-                        >
-                          <Archive size={12} /> {downloadingReceipt ? 'Downloading...' : 'Download Receipt'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ─── Item Returned Banner ─────────────────────────────────── */}
-                  {currentMatch?.completed && (
-                    <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs flex items-center justify-between text-[#1E3A8A]">
-                      <span className="font-bold flex items-center gap-1.5">
-                        🎉 Item Returned Successfully! Chat is archived.
-                      </span>
-                      <button
-                        onClick={() => setShowRewardRatingModal(true)}
-                        className="rounded-lg bg-[#1E3A8A] px-3 py-1 text-xs font-bold text-white hover:bg-[#2563EB] transition"
-                      >
-                        Rate & Review
-                      </button>
-                    </div>
-                  )}
-
-                  {/* ─── Meeting Scheduler Drawer ─────────────────────────────── */}
-                  {showMeetingScheduler && currentMatch && !currentMatch.completed && (
-                    <MeetingScheduler
-                      matchId={currentMatch._id}
-                      onClose={() => setShowMeetingScheduler(false)}
-                      onSuccess={(updatedMatch) => setCurrentMatch(updatedMatch)}
-                    />
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Messages Body */}
-            <div className="flex-1 space-y-3.5 overflow-y-auto p-4 sm:p-6" style={{ background: 'var(--glass-bg-subtle)' }}>
-              {messages.length === 0 && (
-                <div className="flex h-full flex-col items-center justify-center space-y-2" style={{ color: 'var(--dash-text-muted)' }}>
-                  <MessageCircle size={32} style={{ color: 'var(--dash-accent)' }} />
-                  <p className="text-xs font-semibold">Secure chat initialized. Send a message to coordinate handover.</p>
-                </div>
+                    </button>
+                  );
+                })
               )}
-
-              {messages.map((msg) => {
-                const isMe = msg.senderId._id === user?.id;
-                return (
-                  <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 space-y-1.5 shadow-sm sm:max-w-md ${
-                        isMe
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-br-xs shadow-md'
-                          : 'glass-panel rounded-bl-xs border text-left'
-                      }`}
-                      style={{
-                        color: isMe ? '#ffffff' : 'var(--dash-text-primary)',
-                      }}
-                    >
-                      {msg.imageUrl && (
-                        <img
-                          src={msg.imageUrl}
-                          alt="attachment"
-                          className="rounded-xl max-h-60 object-cover w-full cursor-pointer hover:opacity-90 transition shadow-xs"
-                        />
-                      )}
-
-                      {/* Shared Meeting Location Bubble */}
-                      {msg.location && (
-                        <div
-                          className={`rounded-xl p-3 border space-y-1.5 ${
-                            isMe
-                              ? 'bg-white/15 border-white/25 text-white'
-                              : 'border-indigo-200/80 bg-indigo-50/80 text-indigo-950 dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-200'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider opacity-90">
-                            <MapPin size={13} className={isMe ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'} />
-                            <span>Meeting Handover Spot</span>
-                          </div>
-                          <p className="text-xs font-bold leading-snug">
-                            {msg.location.name}
-                          </p>
-                          {(msg.location.lat !== undefined && msg.location.lng !== undefined) && (
-                            <div className="flex items-center justify-between gap-2 pt-1 border-t border-current/15 text-[10px]">
-                              <span className="font-mono opacity-85">
-                                {msg.location.lat.toFixed(4)}°, {msg.location.lng.toFixed(4)}°
-                              </span>
-                              <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${msg.location.lat},${msg.location.lng}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`inline-flex items-center gap-1 font-bold underline hover:opacity-100 ${
-                                  isMe ? 'text-white' : 'text-indigo-600 dark:text-indigo-300'
-                                }`}
-                              >
-                                <span>Maps</span>
-                                <ExternalLink size={10} />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
-                      <div className={`flex items-center justify-end gap-1 text-[10px] ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
-                        <Clock size={9} />
-                        <span>
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                        {isMe && (msg.isRead ? <CheckCheck size={11} className="text-indigo-200" /> : <Check size={11} />)}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* When A Chat is Selected: Responsive Two-Column Dashboard */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* LEFT COLUMN: SECURE MESSAGES (Larger, prominent chat container)    */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          <div
+            className="lg:col-span-6 xl:col-span-5 flex flex-col glass-panel rounded-[24px] shadow-lg border overflow-hidden h-[780px] min-h-[520px]"
+            style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}
+          >
+            {/* Chat Panel Top Header */}
+            <div className="shrink-0 border-b p-4 sm:px-5 sm:py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md" style={{ borderColor: 'var(--glass-border)' }}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative flex-shrink-0">
+                    {activeThread?.avatar ? (
+                      <img
+                        src={activeThread.avatar}
+                        alt={activeThread.name}
+                        className="h-11 w-11 rounded-2xl object-cover border border-slate-200 shadow-xs"
+                      />
+                    ) : (
+                      <div className="dash-avatar-gradient flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-black uppercase text-white shadow-xs">
+                        {activeThread?.name.charAt(0) ?? '?'}
                       </div>
+                    )}
+                    {activeThread?.isOnline && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm sm:text-base font-extrabold truncate" style={{ color: 'var(--dash-text-primary)' }}>
+                        {activeThread?.name || 'Secure Conversation'}
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-medium" style={{ color: 'var(--dash-text-secondary)' }}>
+                      <span>{activeThread?.isOnline ? 'Online' : 'Offline'}</span>
+                      <span>•</span>
+                      <StatusDot status={connectionStatus} />
                     </div>
                   </div>
-                );
-              })}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/messages"
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#1E3A8A] hover:bg-slate-50 transition shadow-xs dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                  >
+                    Chats
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Chat Messages Body (Internally scrollable, flexible height) */}
+            <div
+              ref={messagesContainerRef}
+              className="flex-1 min-h-0 space-y-3.5 overflow-y-auto p-4 sm:p-5"
+              style={{ background: 'var(--glass-bg-subtle)' }}
+            >
+              {messages.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center space-y-2 py-12" style={{ color: 'var(--dash-text-muted)' }}>
+                  <MessageCircle size={36} style={{ color: 'var(--dash-accent)' }} />
+                  <p className="text-xs font-semibold text-center">Secure chat initialized. Send a message to coordinate handover.</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isMe = msg.senderId._id === user?.id;
+                  return (
+                    <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-4 py-3 space-y-1.5 shadow-sm sm:max-w-md ${
+                          isMe
+                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-br-xs shadow-md'
+                            : 'glass-panel rounded-bl-xs border text-left'
+                        }`}
+                        style={{
+                          color: isMe ? '#ffffff' : 'var(--dash-text-primary)',
+                        }}
+                      >
+                        {msg.imageUrl && (
+                          <img
+                            src={msg.imageUrl}
+                            alt="attachment"
+                            className="rounded-xl max-h-60 object-cover w-full cursor-pointer hover:opacity-90 transition shadow-xs"
+                          />
+                        )}
+
+                        {/* Shared Meeting Location Bubble */}
+                        {msg.location && (
+                          <div
+                            className={`rounded-xl p-3 border space-y-1.5 ${
+                              isMe
+                                ? 'bg-white/15 border-white/25 text-white'
+                                : 'border-indigo-200/80 bg-indigo-50/80 text-indigo-950 dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider opacity-90">
+                              <MapPin size={13} className={isMe ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'} />
+                              <span>Meeting Handover Spot</span>
+                            </div>
+                            <p className="text-xs font-bold leading-snug">
+                              {msg.location.name}
+                            </p>
+                            {(msg.location.lat !== undefined && msg.location.lng !== undefined) && (
+                              <div className="flex items-center justify-between gap-2 pt-1 border-t border-current/15 text-[10px]">
+                                <span className="font-mono opacity-85">
+                                  {msg.location.lat.toFixed(4)}°, {msg.location.lng.toFixed(4)}°
+                                </span>
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${msg.location.lat},${msg.location.lng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`inline-flex items-center gap-1 font-bold underline hover:opacity-100 ${
+                                    isMe ? 'text-white' : 'text-indigo-600 dark:text-indigo-300'
+                                  }`}
+                                >
+                                  <span>Maps</span>
+                                  <ExternalLink size={10} />
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {msg.text && <p className="text-xs leading-relaxed">{msg.text}</p>}
+                        <div className={`flex items-center justify-end gap-1 text-[10px] ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
+                          <Clock size={9} />
+                          <span>
+                            {new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          {isMe && (msg.isRead ? <CheckCheck size={11} className="text-indigo-200" /> : <Check size={11} />)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
 
               {someoneIsTyping && (
                 <div className="flex items-center gap-2 justify-start pl-2">
@@ -1239,13 +873,13 @@ export default function ChatPage() {
 
             {/* Archived Chat Banner */}
             {isReadOnly && (
-              <div className="flex flex-col items-center justify-center gap-3 border-t px-4 py-3 text-center sm:flex-row sm:text-left" style={{ borderColor: 'var(--glass-border)', background: 'rgba(16,185,129,0.08)' }}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-                  <Archive size={16} />
+              <div className="flex flex-col items-center justify-center gap-2 border-t px-4 py-3 text-center sm:flex-row sm:text-left" style={{ borderColor: 'var(--glass-border)', background: 'rgba(16,185,129,0.08)' }}>
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                  <Archive size={14} />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Item Successfully Returned</p>
-                  <p className="text-[10.5px] text-emerald-600/80">Chat Archived — This conversation is now read-only</p>
+                  <p className="text-[10px] text-emerald-600/80">Chat Archived — This conversation is now read-only</p>
                 </div>
               </div>
             )}
@@ -1263,8 +897,8 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Message Input Form */}
-            <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t p-3 sm:gap-3 sm:p-4" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+            {/* Message Input Form (Pinned at bottom of left panel) */}
+            <form onSubmit={handleSendMessage} className="shrink-0 flex items-center gap-2 border-t p-3 sm:gap-3 sm:p-4" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
               <input type="file" ref={imageInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
               <button
                 type="button"
@@ -1303,243 +937,649 @@ export default function ChatPage() {
                 {isReadOnly ? <Lock size={16} /> : sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </button>
             </form>
+          </div>
 
-            {/* Workflow Modals */}
-            {showVerificationModal && currentMatch && user && (
-              <OwnershipVerificationModal
-                match={currentMatch}
-                currentUserId={user.id}
-                onClose={() => setShowVerificationModal(false)}
-                onSuccess={() => {
-                  if (selectedChat) handleChatSelect(selectedChat);
-                }}
-              />
-            )}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          {/* RIGHT COLUMN: MATCH DETAILS & WORKFLOW SECTIONS                     */}
+          {/* ═══════════════════════════════════════════════════════════════════ */}
+          <div className="lg:col-span-6 xl:col-span-7 flex flex-col space-y-5">
+            {(() => {
+              const currentCounterpart = activeThread;
+              const currentUserId = String(user?.id || (user as any)?._id || '');
+              const lostUserId = String((currentMatch?.lostUserId as any)?._id || (currentMatch?.lostUserId as any)?.id || currentMatch?.lostUserId || '');
+              const foundUserId = String((currentMatch?.foundUserId as any)?._id || (currentMatch?.foundUserId as any)?.id || currentMatch?.foundUserId || '');
 
-            {showMarkReturnedModal && currentMatch && (
-              <MarkReturnedModal
-                match={currentMatch}
-                onClose={() => setShowMarkReturnedModal(false)}
-                onSuccess={() => {
-                  if (selectedChat) handleChatSelect(selectedChat);
-                  setShowRewardRatingModal(true);
-                }}
-              />
-            )}
+              const isOwner = Boolean(currentUserId && lostUserId && currentUserId === lostUserId);
+              const isFinder = Boolean(currentUserId && foundUserId && currentUserId === foundUserId);
+              const meetingConfirmed = currentMatch?.meetingStatus === 'CONFIRMED';
+              const meetingPending = currentMatch?.meetingStatus === 'PENDING';
+              const verificationVerified = currentMatch?.verificationStatus === 'VERIFIED';
+              const rewardAmt = currentMatch?.rewardAmount ?? (currentMatch?.foundItemId as any)?.rewardAmount ?? (currentReward?.requestedAmount ?? 1);
+              const paymentCompleted = currentMatch?.paymentStatus === 'PAID' || currentMatch?.rewardPaid || currentMatch?.rewardStatus === 'Paid';
+              const canMarkReturned = Boolean((isFinder || !isOwner) && meetingConfirmed && verificationVerified && (paymentCompleted || rewardAmt === 0) && !currentMatch?.completed);
 
-            {showRewardRatingModal && currentMatch && user && (
-              <RewardsAndRatingModal
-                match={currentMatch}
-                currentUserId={user.id}
-                onClose={() => setShowRewardRatingModal(false)}
-                onSuccess={() => {
-                  if (selectedChat) handleChatSelect(selectedChat);
-                }}
-              />
-            )}
-
-            {/* Share Meeting Location Modal */}
-            {showShareLocationModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-                <div
-                  className="glass-panel w-full max-w-md p-5 sm:p-6 rounded-3xl space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
-                  style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
-                >
-                  <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300">
-                        <MapPin size={16} />
+              return (
+                <div className="space-y-5">
+                  {/* 1. Header Card: Participant Info & Workflow Stepper */}
+                  <div className="glass-panel p-5 sm:p-6 rounded-[24px] space-y-4 shadow-lg border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                    {/* Top Bar: Participant Info & Actions */}
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative">
+                          {currentCounterpart?.avatar ? (
+                            <img
+                              src={currentCounterpart.avatar}
+                              alt={currentCounterpart.name}
+                              className="h-11 w-11 rounded-2xl object-cover border border-slate-200 shadow-xs"
+                            />
+                          ) : (
+                            <div className="dash-avatar-gradient flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-black uppercase text-white shadow-xs">
+                              {currentCounterpart?.name.charAt(0) ?? '?'}
+                            </div>
+                          )}
+                          {currentCounterpart?.isOnline && (
+                            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="truncate text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>{currentCounterpart?.name}</h3>
+                            {verificationVerified && (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#10B981]">
+                                <ShieldCheck size={12} /> Verified
+                              </span>
+                            )}
+                            {currentMatch?.completed && (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-[#64748B]">
+                                Returned
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs font-medium" style={{ color: 'var(--dash-text-secondary)' }}>
+                            {currentCounterpart?.isOnline ? 'Online' : 'Offline'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Share Meeting Location</h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Coordinate a safe handover point</p>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {currentMatch && (
+                          <Link
+                            to={`/matches/${currentMatch._id}`}
+                            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-[#1E3A8A] hover:bg-slate-50 transition shadow-xs dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                          >
+                            Review Match
+                          </Link>
+                        )}
+
+                        {currentMatch && !currentMatch.completed && (
+                          <>
+                            <button
+                              onClick={() => setShowMeetingScheduler((v) => !v)}
+                              className={`inline-flex items-center gap-1 rounded-xl border px-3.5 py-2 text-xs font-bold transition shadow-xs ${
+                                meetingConfirmed
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : 'border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100'
+                              }`}
+                            >
+                              <CalendarClock size={13} /> {meetingConfirmed ? 'Meeting Confirmed' : 'Schedule Meeting'}
+                            </button>
+
+                            <button
+                              onClick={() => setShowVerificationModal(true)}
+                              className={`inline-flex items-center gap-1 rounded-xl border px-3.5 py-2 text-xs font-bold transition shadow-xs ${
+                                verificationVerified
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : 'border-blue-200 bg-blue-50 text-[#2563EB] hover:bg-blue-100'
+                              }`}
+                            >
+                              <ShieldCheck size={13} /> {verificationVerified ? 'Verified' : 'Verify Ownership'}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowShareLocationModal(false)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
-                    >
-                      <X size={18} />
-                    </button>
+
+                    {/* Workflow Progress Stepper */}
+                    <div className="flex items-center justify-between gap-1 overflow-x-auto rounded-2xl border border-slate-200/80 bg-[#F8FAFC] dark:bg-slate-800/60 dark:border-slate-700/80 px-3 py-3">
+                      {[
+                        { label: 'Chat', active: true, completed: true },
+                        { label: 'Meeting', active: Boolean(meetingPending), completed: Boolean(meetingConfirmed) },
+                        { label: 'Verification', active: Boolean(meetingConfirmed && !verificationVerified), completed: Boolean(verificationVerified) },
+                        { label: 'Payment', active: Boolean(verificationVerified && !paymentCompleted), completed: Boolean(paymentCompleted) },
+                        { label: 'Return', active: Boolean(verificationVerified && paymentCompleted && !currentMatch?.completed), completed: Boolean(currentMatch?.completed) },
+                        { label: 'Completed', active: Boolean(currentMatch?.completed), completed: Boolean(currentMatch?.completed) },
+                      ].map((step, idx) => {
+                        let badgeStyle = 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400';
+                        let textStyle = 'text-slate-400 font-medium';
+                        if (step.completed) {
+                          badgeStyle = 'bg-[#16A34A] text-white font-bold';
+                          textStyle = 'text-[#16A34A] font-bold';
+                        } else if (step.active) {
+                          badgeStyle = 'bg-[#2563EB] text-white font-bold animate-pulse';
+                          textStyle = 'text-[#2563EB] font-bold';
+                        }
+
+                        return (
+                          <div key={idx} className="flex items-center gap-1.5 flex-1 min-w-max">
+                            <div className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] ${badgeStyle}`}>
+                              {step.completed ? '✓' : idx + 1}
+                            </div>
+                            <span className={`text-[11px] ${textStyle}`}>{step.label}</span>
+                            {idx < 5 && (
+                              <div className={`h-0.5 flex-1 min-w-3 ${step.completed ? 'bg-[#16A34A]' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Mode Selector Tabs */}
-                  <div className="grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100/80 p-1 dark:bg-slate-800/80 text-[11px] font-bold">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLocationShareMode('current');
-                        if (chatGeoStatus === 'idle') requestChatLocation().catch(() => {});
-                      }}
-                      className={`rounded-xl py-2 transition ${
-                        locationShareMode === 'current'
-                          ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
-                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                      }`}
-                    >
-                      My Live GPS
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLocationShareMode('preset')}
-                      className={`rounded-xl py-2 transition ${
-                        locationShareMode === 'preset'
-                          ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
-                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                      }`}
-                    >
-                      Campus Spot
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLocationShareMode('custom')}
-                      className={`rounded-xl py-2 transition ${
-                        locationShareMode === 'custom'
-                          ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
-                          : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-                      }`}
-                    >
-                      Custom Spot
-                    </button>
-                  </div>
+                  {/* 2. Proposed Meeting Request Banner (If Pending) */}
+                  {currentMatch && meetingPending && isFinder && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs space-y-3 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-amber-900 flex items-center gap-1.5 text-sm">
+                          <CalendarClock size={16} /> Proposed Meeting Request
+                        </span>
+                        <span className="rounded-md bg-amber-200/80 px-2.5 py-1 text-[10px] font-bold text-amber-900">
+                          Response Required
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 text-slate-700 font-medium sm:grid-cols-2">
+                        <p className="flex items-center gap-1.5">
+                          <MapPin size={13} className="text-amber-600" /> <strong>Location:</strong> {currentMatch.meetingLocation}
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          <Clock size={13} className="text-amber-600" /> <strong>Time:</strong> {currentMatch.meetingTime ? new Date(currentMatch.meetingTime).toLocaleString() : 'TBD'}
+                        </p>
+                      </div>
+                      {currentMatch.meetingCoordinates && (
+                        <div className="h-32 w-full rounded-xl overflow-hidden border border-amber-200 mt-2 z-0">
+                          <MapContainer center={[currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} zoom={15} className="h-full w-full" zoomControl={false} dragging={false} scrollWheelZoom={false}>
+                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <Marker position={[currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} icon={customIcon} />
+                          </MapContainer>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          disabled={respondingMeeting}
+                          onClick={() => handleRespondMeeting('accept')}
+                          className="rounded-xl bg-[#16A34A] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition disabled:opacity-50"
+                        >
+                          {respondingMeeting ? 'Saving...' : 'Accept Meeting'}
+                        </button>
+                        <button
+                          disabled={respondingMeeting}
+                          onClick={() => handleRespondMeeting('decline')}
+                          className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-red-700 transition disabled:opacity-50"
+                        >
+                          Decline Meeting
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                  {/* Tab Contents */}
-                  {locationShareMode === 'current' && (
-                    <div className="space-y-3">
-                      {chatGeoStatus === 'granted' && chatLocationInfo ? (
-                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 dark:border-emerald-900/50 dark:bg-emerald-950/30 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                              </span>
-                              Live Position Ready
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => requestChatLocation().catch(() => {})}
-                              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 underline dark:text-emerald-400"
-                            >
-                              <Crosshair size={11} />
-                              <span>Refresh</span>
-                            </button>
-                          </div>
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                            {chatLocationInfo.addressLabel}
-                          </p>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-                            Lat: {chatLocationInfo.coordinates.lat.toFixed(5)}, Lng: {chatLocationInfo.coordinates.lng.toFixed(5)}
-                            {chatLocationInfo.coordinates.accuracy && ` (±${chatLocationInfo.coordinates.accuracy}m)`}
+                  {/* 3. Meeting Confirmed Banner & Interactive Map */}
+                  {currentMatch && meetingConfirmed && (
+                    <div className="glass-panel p-5 sm:p-6 rounded-[24px] space-y-4 shadow-lg border border-emerald-200/80 bg-emerald-50/40 dark:bg-emerald-950/20 dark:border-emerald-900/50">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-emerald-900 dark:text-emerald-300 flex items-center gap-2 text-base">
+                          <CheckCircle size={18} className="text-[#16A34A]" /> Meeting Confirmed
+                        </span>
+                        <span className="rounded-full bg-emerald-200/80 px-3 py-1 text-[11px] font-extrabold text-emerald-900 border border-emerald-300 dark:bg-emerald-900/60 dark:text-emerald-200">
+                          Confirmed ✅
+                        </span>
+                      </div>
+
+                      {/* Location / Time Details */}
+                      <div className="grid grid-cols-1 gap-3 text-slate-700 dark:text-slate-300 font-medium sm:grid-cols-2 text-xs">
+                        <div className="flex items-start gap-2 bg-white/60 dark:bg-slate-900/60 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                          <MapPin size={15} className="text-[#16A34A] shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Location</span>
+                            <strong className="text-slate-800 dark:text-slate-100">{currentMatch.meetingLocation || 'Share Current Location'}</strong>
                           </div>
                         </div>
-                      ) : chatGeoStatus === 'requesting' ? (
-                        <div className="flex items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 text-xs font-semibold text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300">
-                          <Loader2 size={16} className="animate-spin" />
-                          <span>Acquiring browser GPS position...</span>
+                        <div className="flex items-start gap-2 bg-white/60 dark:bg-slate-900/60 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                          <Clock size={15} className="text-[#16A34A] shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Scheduled Time</span>
+                            <strong className="text-slate-800 dark:text-slate-100">{currentMatch.meetingTime ? new Date(currentMatch.meetingTime).toLocaleString() : '18/8/2026, 3:26:00 PM'}</strong>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50 space-y-2 text-center">
-                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            {chatGeoError || 'Allow location access in your browser to share your live coordinates with the other person.'}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => requestChatLocation().catch(() => {})}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-purple-700 transition"
+                      </div>
+
+                      {/* Navigation & Live Location Actions */}
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        {currentMatch.meetingCoordinates && (
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${currentMatch.meetingCoordinates.lat},${currentMatch.meetingCoordinates.lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
                           >
-                            <Crosshair size={13} />
-                            <span>Detect My Location</span>
-                          </button>
+                            <MapPin size={14} /> Navigate to Meeting
+                          </a>
+                        )}
+                        <button
+                          onClick={() => setSharingLiveLocation(!sharingLiveLocation)}
+                          className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-sm transition ${
+                            sharingLiveLocation
+                              ? 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
+                              : 'bg-blue-600 text-white hover:bg-blue-700'
+                          }`}
+                        >
+                          <MapPin size={14} className={sharingLiveLocation ? 'animate-pulse' : ''} />
+                          {sharingLiveLocation ? 'Stop Live Location' : 'Share My Live Location'}
+                        </button>
+                        {partnerSharingLiveLocation && (
+                          <span className="inline-flex items-center gap-1.5 rounded-xl bg-blue-100 px-3 py-2 text-xs font-bold text-blue-800 border border-blue-200 animate-pulse">
+                            <MapPin size={13} /> Partner is sharing location
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Interactive Leaflet Map */}
+                      {currentMatch.meetingCoordinates && (
+                        <div className="h-60 w-full rounded-2xl overflow-hidden border border-emerald-200 mt-2 z-0 relative shadow-inner">
+                          <MapContainer 
+                            center={myLiveLocation || [currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} 
+                            zoom={16} 
+                            className="h-full w-full"
+                          >
+                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <Marker position={[currentMatch.meetingCoordinates.lat, currentMatch.meetingCoordinates.lng]} icon={customIcon} />
+                            
+                            {myLiveLocation && (
+                              <Marker 
+                                position={myLiveLocation} 
+                                icon={new L.Icon({
+                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                  iconSize: [25, 41], iconAnchor: [12, 41]
+                                })} 
+                              />
+                            )}
+                            
+                            {partnerLiveLocation && (
+                              <Marker 
+                                position={partnerLiveLocation} 
+                                icon={new L.Icon({
+                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
+                                  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                  iconSize: [25, 41], iconAnchor: [12, 41]
+                                })} 
+                              />
+                            )}
+                          </MapContainer>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {locationShareMode === 'preset' && (
-                    <div className="space-y-2">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                        Select Campus Meeting Spot
-                      </label>
-                      <select
-                        value={selectedMeetingSpot}
-                        onChange={(e) => setSelectedMeetingSpot(e.target.value)}
-                        className="glass-input h-11 w-full px-3 text-xs sm:text-sm font-semibold"
-                      >
-                        {CAMPUS_LANDMARKS.map((landmark) => (
-                          <option key={landmark.name} value={landmark.name}>
-                            {landmark.name} ({landmark.category})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {locationShareMode === 'custom' && (
-                    <div className="space-y-2">
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                        Custom Handover Location
-                      </label>
-                      <input
-                        type="text"
-                        value={customMeetingSpot}
-                        onChange={(e) => setCustomMeetingSpot(e.target.value)}
-                        placeholder="e.g. Ground Floor Reception Desk, Outside AB-1 Cafe..."
-                        className="glass-input h-11 w-full px-3 text-xs sm:text-sm font-medium"
-                      />
-                    </div>
-                  )}
-
-                  {/* Optional Note */}
-                  <div className="space-y-1.5">
-                    <label className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Additional Note (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={meetingNote}
-                      onChange={(e) => setMeetingNote(e.target.value)}
-                      placeholder="e.g. Wearing a blue hoodie, sitting near the entrance..."
-                      className="glass-input h-10 w-full px-3 text-xs"
+                  {/* 4. Reward Offer Section */}
+                  {currentMatch && (
+                    <RewardNegotiation
+                      matchId={currentMatch._id}
+                      initialAmount={rewardAmt}
+                      rewardStatus={currentMatch.rewardStatus || 'Accepted'}
+                      isOwner={isOwner}
+                      onUpdate={() => {
+                        matchesApi.getById(currentMatch._id).then((res) => setCurrentMatch(res.data.match));
+                      }}
                     />
-                  </div>
+                  )}
 
-                  {/* Modal Action Buttons */}
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t" style={{ borderColor: 'var(--glass-border)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowShareLocationModal(false)}
-                      className="dash-btn-secondary px-4 py-2 text-xs font-bold"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSendMeetingLocation}
-                      disabled={sendingLocation || (locationShareMode === 'current' && !chatLocationInfo && chatGeoStatus === 'requesting')}
-                      className="dash-btn-primary px-4 py-2 text-xs font-bold text-white inline-flex items-center gap-1.5 shadow-md disabled:opacity-50"
-                    >
-                      {sendingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-                      <span>Share Location</span>
-                    </button>
-                  </div>
+                  {/* 5. Reward Payment Section (Role Aware: Owner vs Finder) */}
+                  {currentMatch && (
+                    <>
+                      {!paymentCompleted ? (
+                        isOwner ? (
+                          <div className="glass-panel p-5 sm:p-6 rounded-[24px] space-y-4 shadow-lg border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+                              <div>
+                                <h3 className="text-base font-extrabold" style={{ color: 'var(--dash-text-primary)' }}>Secure Reward Payment</h3>
+                                <p className="text-xs text-slate-500">Escrow protected transaction for verified handover</p>
+                              </div>
+                              <span className="text-sm font-extrabold text-[#2563EB] bg-blue-50 dark:bg-blue-950/60 px-3 py-1 rounded-xl">₹{rewardAmt}</span>
+                            </div>
+                            <RewardPayment
+                              matchId={currentMatch._id}
+                              defaultAmount={rewardAmt}
+                              finderName={currentMatch.foundUserId.name}
+                              itemName={currentMatch.lostItemId.itemName}
+                              paymentStatus={currentMatch.paymentStatus}
+                              isOwner={true}
+                              onPaymentSuccess={() => {
+                                matchesApi.getById(currentMatch._id).then((res) => setCurrentMatch(res.data.match));
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <RewardPayment
+                            matchId={currentMatch._id}
+                            defaultAmount={rewardAmt}
+                            finderName={currentMatch.foundUserId.name}
+                            itemName={currentMatch.lostItemId.itemName}
+                            paymentStatus={currentMatch.paymentStatus}
+                            isOwner={false}
+                            onPaymentSuccess={() => {
+                              matchesApi.getById(currentMatch._id).then((res) => setCurrentMatch(res.data.match));
+                            }}
+                          />
+                        )
+                      ) : (
+                        <div className="glass-panel p-5 rounded-[24px] border border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20 text-xs flex flex-wrap gap-3 items-center justify-between text-emerald-900 dark:text-emerald-200 font-semibold shadow-xs">
+                          <span className="flex items-center gap-2 text-sm">
+                            <CheckCircle size={18} className="text-[#16A34A]" /> Reward Payment Completed{rewardAmt > 0 ? ` (₹${rewardAmt})` : ''}
+                            <span className="text-[10px] bg-emerald-200 dark:bg-emerald-800 px-2.5 py-0.5 rounded-full font-bold ml-1">PAID</span>
+                          </span>
+                          {currentMatch.paymentId && (
+                            <button
+                              onClick={handleDownloadReceipt}
+                              disabled={downloadingReceipt}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-100 px-3.5 py-2 text-xs font-bold text-emerald-800 hover:bg-emerald-200 transition disabled:opacity-50 dark:bg-emerald-900/60 dark:text-emerald-100"
+                            >
+                              <Archive size={13} /> {downloadingReceipt ? 'Downloading...' : 'Download Receipt'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* 6. Return Section (Finder Only Action) */}
+                  {currentMatch && !currentMatch.completed && isFinder && (
+                    <div className="glass-panel p-5 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm border" style={{ borderColor: 'var(--glass-border)' }}>
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>Item Return Verification</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Confirm item physical return to the verified owner.
+                        </p>
+                      </div>
+                      <button
+                        disabled={!canMarkReturned}
+                        onClick={() => {
+                          if (!meetingConfirmed) {
+                            toast.error('Meeting must be confirmed by finder first.');
+                            return;
+                          }
+                          if (!verificationVerified) {
+                            toast.error('Ownership must be verified first before marking returned.');
+                            return;
+                          }
+                          if (rewardAmt > 0 && !paymentCompleted) {
+                            toast.error('Owner reward payment must be completed first.');
+                            return;
+                          }
+                          setShowMarkReturnedModal(true);
+                        }}
+                        className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold text-white shadow-xs transition ${
+                          canMarkReturned
+                            ? 'bg-[#10B981] hover:bg-emerald-600'
+                            : 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed text-slate-500'
+                        }`}
+                      >
+                        {canMarkReturned ? 'Mark Item Returned ✅' : 'Mark Item Returned 🔒'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 7. Completed Section */}
+                  {currentMatch?.completed && (
+                    <div className="glass-panel p-5 rounded-[24px] border border-blue-200 bg-blue-50/60 dark:bg-blue-950/20 text-xs flex items-center justify-between text-[#1E3A8A] dark:text-blue-300 shadow-sm">
+                      <span className="font-bold text-sm flex items-center gap-2">
+                        🎉 Item Returned Successfully! Match coordination is completed.
+                      </span>
+                      <button
+                        onClick={() => setShowRewardRatingModal(true)}
+                        className="rounded-xl bg-[#1E3A8A] px-4 py-2 text-xs font-bold text-white hover:bg-[#2563EB] transition shadow-xs"
+                      >
+                        Rate & Review
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 8. Meeting Scheduler Drawer (if open) */}
+                  {showMeetingScheduler && currentMatch && !currentMatch.completed && (
+                    <MeetingScheduler
+                      matchId={currentMatch._id}
+                      onClose={() => setShowMeetingScheduler(false)}
+                      onSuccess={(updatedMatch) => setCurrentMatch(updatedMatch)}
+                    />
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Workflow Modals */}
+      {showVerificationModal && currentMatch && user && (
+        <OwnershipVerificationModal
+          match={currentMatch}
+          currentUserId={user.id}
+          onClose={() => setShowVerificationModal(false)}
+          onSuccess={() => {
+            if (selectedChat) handleChatSelect(selectedChat);
+          }}
+        />
+      )}
+
+      {showMarkReturnedModal && currentMatch && (
+        <MarkReturnedModal
+          match={currentMatch}
+          onClose={() => setShowMarkReturnedModal(false)}
+          onSuccess={() => {
+            if (selectedChat) handleChatSelect(selectedChat);
+            setShowRewardRatingModal(true);
+          }}
+        />
+      )}
+
+      {showRewardRatingModal && currentMatch && user && (
+        <RewardsAndRatingModal
+          match={currentMatch}
+          currentUserId={user.id}
+          onClose={() => setShowRewardRatingModal(false)}
+          onSuccess={() => {
+            if (selectedChat) handleChatSelect(selectedChat);
+          }}
+        />
+      )}
+
+      {/* Share Meeting Location Modal */}
+      {showShareLocationModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <div
+            className="glass-panel w-full max-w-md p-5 sm:p-6 rounded-3xl space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
+            style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}
+          >
+            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: 'var(--glass-border)' }}>
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300">
+                  <MapPin size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Share Meeting Location</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Coordinate a safe handover point</p>
                 </div>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center space-y-2">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[var(--primary)] dark:bg-blue-950/40 mb-2">
-              <MessageCircle size={28} />
+              <button
+                type="button"
+                onClick={() => setShowShareLocationModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+              >
+                <X size={18} />
+              </button>
             </div>
-            <h3 className="text-sm font-bold text-[var(--text)]">No conversations yet</h3>
-            <p className="max-w-xs text-xs text-[var(--secondary)] leading-relaxed">
-              Verified item matches will allow messaging.
-            </p>
+
+            {/* Mode Selector Tabs */}
+            <div className="grid grid-cols-3 gap-1.5 rounded-2xl bg-slate-100/80 p-1 dark:bg-slate-800/80 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setLocationShareMode('current');
+                  if (chatGeoStatus === 'idle') requestChatLocation().catch(() => {});
+                }}
+                className={`rounded-xl py-2 transition ${
+                  locationShareMode === 'current'
+                    ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                My Live GPS
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationShareMode('preset')}
+                className={`rounded-xl py-2 transition ${
+                  locationShareMode === 'preset'
+                    ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                Campus Spot
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationShareMode('custom')}
+                className={`rounded-xl py-2 transition ${
+                  locationShareMode === 'custom'
+                    ? 'bg-white text-purple-700 shadow-xs dark:bg-slate-900 dark:text-purple-300'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                Custom Spot
+              </button>
+            </div>
+
+            {/* Tab Contents */}
+            {locationShareMode === 'current' && (
+              <div className="space-y-3">
+                {chatGeoStatus === 'granted' && chatLocationInfo ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 dark:border-emerald-900/50 dark:bg-emerald-950/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        </span>
+                        Live Position Ready
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => requestChatLocation().catch(() => {})}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 underline dark:text-emerald-400"
+                      >
+                        <Crosshair size={11} />
+                        <span>Refresh</span>
+                      </button>
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                      {chatLocationInfo.addressLabel}
+                    </p>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
+                      Lat: {chatLocationInfo.coordinates.lat.toFixed(5)}, Lng: {chatLocationInfo.coordinates.lng.toFixed(5)}
+                      {chatLocationInfo.coordinates.accuracy && ` (±${chatLocationInfo.coordinates.accuracy}m)`}
+                    </div>
+                  </div>
+                ) : chatGeoStatus === 'requesting' ? (
+                  <div className="flex items-center justify-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 text-xs font-semibold text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300">
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Acquiring browser GPS position...</span>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-800/50 space-y-2 text-center">
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      {chatGeoError || 'Allow location access in your browser to share your live coordinates with the other person.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => requestChatLocation().catch(() => {})}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-purple-700 transition"
+                    >
+                      <Crosshair size={13} />
+                      <span>Detect My Location</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {locationShareMode === 'preset' && (
+              <div className="space-y-2">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                  Select Campus Meeting Spot
+                </label>
+                <select
+                  value={selectedMeetingSpot}
+                  onChange={(e) => setSelectedMeetingSpot(e.target.value)}
+                  className="glass-input h-11 w-full px-3 text-xs sm:text-sm font-semibold"
+                >
+                  {CAMPUS_LANDMARKS.map((landmark) => (
+                    <option key={landmark.name} value={landmark.name}>
+                      {landmark.name} ({landmark.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {locationShareMode === 'custom' && (
+              <div className="space-y-2">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                  Custom Handover Location
+                </label>
+                <input
+                  type="text"
+                  value={customMeetingSpot}
+                  onChange={(e) => setCustomMeetingSpot(e.target.value)}
+                  placeholder="e.g. Ground Floor Reception Desk, Outside AB-1 Cafe..."
+                  className="glass-input h-11 w-full px-3 text-xs sm:text-sm font-medium"
+                />
+              </div>
+            )}
+
+            {/* Optional Note */}
+            <div className="space-y-1.5">
+              <label className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Additional Note (Optional)
+              </label>
+              <input
+                type="text"
+                value={meetingNote}
+                onChange={(e) => setMeetingNote(e.target.value)}
+                placeholder="e.g. Wearing a blue hoodie, sitting near the entrance..."
+                className="glass-input h-10 w-full px-3 text-xs"
+              />
+            </div>
+
+            {/* Modal Action Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t" style={{ borderColor: 'var(--glass-border)' }}>
+              <button
+                type="button"
+                onClick={() => setShowShareLocationModal(false)}
+                className="dash-btn-secondary px-4 py-2 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSendMeetingLocation}
+                disabled={sendingLocation || (locationShareMode === 'current' && !chatLocationInfo && chatGeoStatus === 'requesting')}
+                className="dash-btn-primary px-4 py-2 text-xs font-bold text-white inline-flex items-center gap-1.5 shadow-md disabled:opacity-50"
+              >
+                {sendingLocation ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                <span>Share Location</span>
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </PageTransition>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { ArrowLeft, Save, Wand2, MapPin, Tag, CheckCircle2, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Wand2, MapPin, Tag, CheckCircle2, FileText, Loader2 } from 'lucide-react';
 import { foundItemsApi, aiApi } from '../lib/api';
 import PageTransition from '../components/PageTransition';
 import ImageUploader from '../components/ImageUploader';
@@ -54,19 +54,27 @@ export default function ReportFoundItemPage() {
       foundLocation: 'Central Library',
       condition: 'Good',
       rewardExpected: false,
-      rewardAmount: 0,
     },
   });
 
   const watchAll = watch();
 
+  const itemNameValid = (watchAll.itemName?.trim().length || 0) >= 2;
+  const categoryValid = !!watchAll.category;
+  const descLen = watchAll.description?.trim().length || 0;
+  const descValid = descLen >= 5;
+  const conditionValid = !!watchAll.condition;
+  const locationValid = (watchAll.foundLocation?.trim().length || 0) >= 2;
+  const dateValid = !!watchAll.foundDate;
+
   const qualityScore = Math.min(
     100,
-    (watchAll.itemName ? 25 : 0) +
-      (watchAll.category ? 15 : 0) +
-      (watchAll.description && watchAll.description.length > 15 ? 30 : 10) +
-      (watchAll.foundLocation ? 15 : 0) +
-      (displayedImages.length > 0 ? 15 : 0)
+    (itemNameValid ? 20 : 0) +
+      (categoryValid ? 15 : 0) +
+      (descValid ? 25 : descLen > 0 ? 10 : 0) +
+      (conditionValid ? 15 : 0) +
+      (locationValid ? 15 : 0) +
+      (dateValid ? 10 : 0)
   );
 
   useEffect(() => {
@@ -83,14 +91,16 @@ export default function ReportFoundItemPage() {
         setValue('foundLocation', item.foundLocation);
         setValue('condition', item.condition || 'Good');
         setValue('rewardExpected', item.rewardExpected || false);
-        setValue('rewardAmount', item.rewardAmount || 0);
+        if (item.rewardAmount !== undefined && item.rewardAmount > 0) {
+          setValue('rewardAmount', item.rewardAmount);
+        }
 
         const loadedUrls = item.images?.length ? item.images : item.imageUrl ? [item.imageUrl] : [];
         const loadedPublicIds = item.imagePublicIds?.length ? item.imagePublicIds : item.imagePublicId ? [item.imagePublicId] : [];
         setExistingImagePublicIds(loadedPublicIds);
         setDisplayedImages(loadedUrls);
-      } catch {
-        toast.error('Failed to load found item details.');
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Failed to load found item details.');
       }
     };
     fetchItem();
@@ -111,11 +121,11 @@ export default function ReportFoundItemPage() {
     try {
       const res = await aiApi.enhanceDescription({ itemName, category, description, location });
       if (res.data?.enhancedDescription) {
-        setValue('description', res.data.enhancedDescription);
+        setValue('description', res.data.enhancedDescription, { shouldValidate: true });
         toast.success('Description enhanced with AI!');
       }
-    } catch {
-      toast.error('Could not enhance description. Please try again.');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Could not enhance description. Please try again.');
     } finally {
       setEnhancing(false);
     }
@@ -126,7 +136,14 @@ export default function ReportFoundItemPage() {
       const formData = new FormData();
       Object.keys(data).forEach((key) => {
         const val = (data as any)[key];
-        if (val !== undefined && val !== null) formData.append(key, val);
+        if (key === 'rewardAmount') {
+          const num = Number(val);
+          if (!Number.isNaN(num) && num > 0) {
+            formData.append('rewardAmount', String(num));
+          }
+        } else if (val !== undefined && val !== null && val !== '') {
+          formData.append(key, typeof val === 'boolean' ? String(val) : val);
+        }
       });
 
       const remoteUrls = displayedImages.filter((img) => img.startsWith('http://') || img.startsWith('https://'));
@@ -148,7 +165,16 @@ export default function ReportFoundItemPage() {
       navigate('/found-items');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to save found item report.');
+      const serverMsg = err.response?.data?.message;
+      if (serverMsg) {
+        if (serverMsg.includes('rewardAmount') || serverMsg.includes('number to be >0')) {
+          toast.error('Reward amount must be greater than ₹0.');
+        } else {
+          toast.error(serverMsg);
+        }
+      } else {
+        toast.error('Failed to save found item report. Please try again.');
+      }
     },
   });
 
@@ -217,19 +243,6 @@ export default function ReportFoundItemPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>
-                  Item Name / Title <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Casio FX-991EX Scientific Calculator"
-                  {...register('itemName', { required: 'Item title is required' })}
-                  className={`glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium ${errors.itemName ? 'border-rose-500' : ''}`}
-                />
-                {errors.itemName && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.itemName.message}</p>}
-              </div>
-
-              <div>
-                <label className={labelCls}>
                   Category <span className="text-rose-500">*</span>
                 </label>
                 <select
@@ -240,6 +253,31 @@ export default function ReportFoundItemPage() {
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>
+                  {watchAll.category === 'Other' ? 'Item Name' : 'Item Name / Title'} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder={
+                    watchAll.category === 'Other'
+                      ? 'Enter the item name, e.g. Umbrella, ID Holder, Watch'
+                      : 'e.g., Casio FX-991EX Scientific Calculator'
+                  }
+                  {...register('itemName', {
+                    required: watchAll.category === 'Other' ? 'Please enter the item name.' : 'Item title is required',
+                    validate: (value) => {
+                      if (!value || !value.trim()) {
+                        return watchAll.category === 'Other' ? 'Please enter the item name.' : 'Item title is required';
+                      }
+                      return true;
+                    },
+                  })}
+                  className={`glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium ${errors.itemName ? 'border-rose-500' : ''}`}
+                />
+                {errors.itemName && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.itemName.message}</p>}
               </div>
             </div>
 
@@ -358,10 +396,10 @@ export default function ReportFoundItemPage() {
             <button
               type="submit"
               disabled={submitMutation.isPending}
-              className="dash-btn-primary py-3 px-8 text-sm font-bold shadow-lg"
+              className="dash-btn-primary py-3 px-8 text-sm font-bold shadow-lg inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
             >
-              <Save size={16} />
+              {submitMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               <span>{submitMutation.isPending ? 'Submitting...' : isEdit ? 'Update Found Report' : 'Publish Found Report'}</span>
             </button>
           </div>

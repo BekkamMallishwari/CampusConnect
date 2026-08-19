@@ -26,8 +26,12 @@ import { socketAuth } from './middleware/socketAuthMiddleware';
 import { AuthSocket } from './types/socket';
 import ChatModel from './models/Chat';
 import MessageModel from './models/Message';
+import NotificationModel from './models/Notification';
+import UserModel from './models/User';
 import connectDB from '../config/db';
 import { setSocketServer, markUserOnline, markUserOffline, emitPresence, emitToUser, emitToChat } from './services/socketHub';
+import { sendNewMessageEmail } from './services/emailService';
+import { createAndDispatchMessage } from './services/messageService';
 
 import authRoutes from './routes/authRoutes';
 import lostItemRoutes from './routes/lostItemRoutes';
@@ -147,9 +151,8 @@ io.on('connection', (rawSocket: Socket) => {
   });
 
   // ── send-message ───────────────────────────────────────────────────────────
-  // Persists the message to MongoDB, updates Chat.lastMessage, then broadcasts
-  // the fully-populated message object to every socket in the room.
-  // The senderId always comes from socket.user (server-verified), never the client.
+  // Delegates to the authoritative createAndDispatchMessage service.
+  // SenderId is server-verified from socket.user, never trusted from client.
   socket.on('send-message', async (data: { chatId: string; text?: string; imageUrl?: string }) => {
     try {
       const { chatId, text, imageUrl } = data;
@@ -159,52 +162,17 @@ io.on('connection', (rawSocket: Socket) => {
         return;
       }
 
-      // 1. Verify the sender is a participant before saving.
-      const chat = await ChatModel.findById(chatId);
-      if (!chat) {
-        socket.emit('error', { message: 'Chat not found.' });
-        return;
-      }
-      const isParticipant = chat.participants.some(
-        (p: unknown) => (p as { toString(): string }).toString() === userId,
-      );
-      if (!isParticipant) {
-        socket.emit('error', { message: 'Access denied.' });
-        return;
-      }
-
-      // 2. Persist to MongoDB.
-      const receiverId = chat.participants.find(
-        (participant: unknown) => (participant as { toString(): string }).toString() !== userId,
-      )?.toString();
-      const message = await MessageModel.create({
+      await createAndDispatchMessage({
         chatId,
-        conversationId: chatId,
         senderId: userId,
-        receiverId,
         text,
         imageUrl,
       });
 
-      // 3. Update the chat's lastMessage pointer.
-      chat.lastMessage = message._id as any;
-      chat.updatedAt = new Date();
-      await chat.save();
-
-      // 4. Populate sender info and broadcast to room.
-      const populated = await message.populate('senderId', 'name avatar');
-      io.to(`chat:${chatId}`).emit('new-message', populated);
-      if (receiverId) {
-        emitToUser(receiverId, 'notification:new-message', {
-          chatId,
-          message: populated,
-        });
-      }
-
-      console.log(`[Socket] Message saved & broadcast [chatId=${chatId}] [sender=${userId}]`);
-    } catch (err) {
+      console.log(`[Socket] Message processed via messageService [chatId=${chatId}] [sender=${userId}]`);
+    } catch (err: any) {
       console.error('[Socket] send-message error:', err);
-      socket.emit('error', { message: 'Failed to send message.' });
+      socket.emit('error', { message: err?.message || 'Failed to send message.' });
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -79,6 +79,8 @@ export default function LandingPage({ initialMode = 'login' }: LandingPageProps)
     window.location.href = `${apiOrigin}/api/auth/google`;
   };
 
+  const hasProcessedOAuthRef = useRef(false);
+
   // Handle URL Google OAuth params if redirected here
   useEffect(() => {
     const token = searchParams.get('token');
@@ -86,16 +88,20 @@ export default function LandingPage({ initialMode = 'login' }: LandingPageProps)
     const errorParam = searchParams.get('error');
 
     if (token && userParam) {
+      if (hasProcessedOAuthRef.current) return;
+      hasProcessedOAuthRef.current = true;
       try {
         const parsedUser = JSON.parse(decodeURIComponent(userParam));
         login(token, parsedUser);
-        toast.success('Successfully authenticated with Google!');
+        toast.success('Successfully authenticated with Google!', { id: 'google-auth-success' });
         navigate('/dashboard', { replace: true });
-      } catch (err) {
-        toast.error('Authentication failed. Please log in again.');
+      } catch {
+        toast.error('Authentication failed. Please log in again.', { id: 'google-auth-error' });
       }
     } else if (errorParam) {
-      toast.error(decodeURIComponent(errorParam));
+      if (hasProcessedOAuthRef.current) return;
+      hasProcessedOAuthRef.current = true;
+      toast.error(decodeURIComponent(errorParam), { id: 'google-auth-error' });
     }
   }, [searchParams, login, navigate]);
 

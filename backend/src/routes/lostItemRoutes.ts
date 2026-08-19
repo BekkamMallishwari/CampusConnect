@@ -12,25 +12,41 @@ import { sendLostItemReportEmail } from '../services/emailService';
 import { POINTS, awardPoints } from '../services/rewardService';
 import { emitToUser } from '../services/socketHub';
 
+import { triggerMatchingForLostItem } from '../services/matchingService';
+
 const router = Router();
 const uploadLostItemImages = upload.array('images', 5);
 
 const CATEGORIES = ['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other'];
 
-const createLostItemSchema = z.object({
-  itemName: z.string().trim().min(2, 'Item name is required'),
-  category: z.enum(['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other']),
-  description: z.string().trim().min(5, 'Description must be at least 5 characters'),
-  lostDate: z.string(),
-  lostTime: z.string().optional(),
-  lostLocation: z.string().trim().min(2, 'Location is required'),
-  color: z.string().optional(),
-  brand: z.string().optional(),
-  additionalNotes: z.string().optional(),
-  contactNumber: z.string().trim().min(7, 'Contact number is required'),
-  existingImageUrls: z.string().optional(),
-  existingImagePublicIds: z.string().optional(),
-});
+const createLostItemSchema = z
+  .object({
+    itemName: z.string().trim().min(1, 'Please enter the item name'),
+    category: z.enum(['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other']),
+    description: z.string().trim().min(5, 'Description must be at least 5 characters'),
+    lostDate: z.string(),
+    lostTime: z.string().optional(),
+    lostLocation: z.string().trim().min(2, 'Location is required'),
+    color: z.string().optional(),
+    brand: z.string().optional(),
+    additionalNotes: z.string().optional(),
+    contactNumber: z.string().trim().min(7, 'Contact number is required'),
+    rewardAmount: z.preprocess((v) => {
+      if (v === '' || v === undefined || v === null || Number.isNaN(Number(v))) return 0;
+      return Number(v);
+    }, z.number().min(0).default(0)).optional(),
+    existingImageUrls: z.string().optional(),
+    existingImagePublicIds: z.string().optional(),
+  })
+  .refine((data) => {
+    if (data.category === 'Other') {
+      return typeof data.itemName === 'string' && data.itemName.trim().length >= 1;
+    }
+    return true;
+  }, {
+    message: 'Please enter the item name.',
+    path: ['itemName'],
+  });
 
 const parseStringArray = (value?: string): string[] => {
   if (!value) return [];
@@ -124,6 +140,11 @@ router.post(
       });
       const populatedItem = await item.populate('postedBy', 'name email avatar phone');
       await awardPoints(req.user!.userId, POINTS.lostReport);
+
+      // Trigger AI matching asynchronously against active found items
+      triggerMatchingForLostItem(item, req.user!.userId).catch((err) =>
+        console.error('[Matching] Error during auto-match for lost item:', err),
+      );
 
       // Send confirmation email asynchronously (non-blocking)
       UserModel.findById(req.user?.userId)

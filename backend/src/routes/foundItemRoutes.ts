@@ -10,8 +10,7 @@ import NotificationModel from '../models/Notification';
 import { requireAuth, AuthRequest } from '../middleware/authMiddleware';
 import { upload } from '../services/cloudinaryService';
 import { deleteStoredLostFoundImage, storeLostFoundImages } from '../services/lostFoundImageService';
-import { calculateMatchScore, MATCH_THRESHOLD } from '../services/matchingService';
-import { sendMatchNotificationEmail } from '../services/emailService';
+import { triggerMatchingForFoundItem } from '../services/matchingService';
 import UserModel from '../models/User';
 import { POINTS, awardPoints } from '../services/rewardService';
 import { emitToUser } from '../services/socketHub';
@@ -21,19 +20,32 @@ const uploadFoundItemImages = upload.array('images', 5);
 
 const CATEGORIES = ['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other'];
 
-const createFoundItemSchema = z.object({
-  itemName: z.string().trim().min(2, 'Item name is required'),
-  category: z.enum(['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other']),
-  foundDate: z.string(),
-  foundTime: z.string().optional(),
-  foundLocation: z.string().trim().min(2, 'Location is required'),
-  description: z.string().trim().min(5, 'Description must be at least 5 characters'),
-  condition: z.enum(['Excellent', 'Good', 'Fair', 'Poor']),
-  rewardExpected: z.preprocess((v) => v === 'true' || v === true, z.boolean()).optional(),
-  rewardAmount: z.preprocess((v) => (v ? Number(v) : undefined), z.number().positive().optional()),
-  existingImageUrls: z.string().optional(),
-  existingImagePublicIds: z.string().optional(),
-});
+const createFoundItemSchema = z
+  .object({
+    itemName: z.string().trim().min(1, 'Please enter the item name'),
+    category: z.enum(['Electronics', 'Wallets', 'Keys', 'IDs/Documents', 'Clothing', 'Books', 'Accessories', 'Other']),
+    foundDate: z.string(),
+    foundTime: z.string().optional(),
+    foundLocation: z.string().trim().min(2, 'Location is required'),
+    description: z.string().trim().min(5, 'Description must be at least 5 characters'),
+    condition: z.enum(['Excellent', 'Good', 'Fair', 'Poor']),
+    rewardExpected: z.preprocess((v) => v === 'true' || v === true, z.boolean()).optional(),
+    rewardAmount: z.preprocess((v) => {
+      if (v === '' || v === undefined || v === null || Number.isNaN(Number(v))) return 0;
+      return Number(v);
+    }, z.number().min(0).default(0)).optional(),
+    existingImageUrls: z.string().optional(),
+    existingImagePublicIds: z.string().optional(),
+  })
+  .refine((data) => {
+    if (data.category === 'Other') {
+      return typeof data.itemName === 'string' && data.itemName.trim().length >= 1;
+    }
+    return true;
+  }, {
+    message: 'Please enter the item name.',
+    path: ['itemName'],
+  });
 
 const parseStringArray = (value?: string): string[] => {
   if (!value) return [];
@@ -128,7 +140,7 @@ router.post(
       await awardPoints(req.user!.userId, POINTS.foundReport);
 
       // Trigger matching asynchronously
-      triggerMatching(foundItem, req.user!.userId).catch((err) =>
+      triggerMatchingForFoundItem(foundItem, req.user!.userId).catch((err) =>
         console.error('[Matching] Error during auto-match:', err),
       );
 
@@ -138,93 +150,6 @@ router.post(
     }
   },
 );
-
-// Async matching logic
-async function triggerMatching(foundItem: IFoundItem, foundUserId: string): Promise<void> {
-  const activeLostItems = await LostItemModel.find({ isActive: true, status: 'Pending' });
-
-  for (const lostItem of activeLostItems) {
-    // Don't match your own items
-    if (lostItem.postedBy.toString() === foundUserId) continue;
-
-    const existing = await MatchModel.findOne({ lostItemId: lostItem._id, foundItemId: foundItem._id });
-    if (existing) continue;
-
-    const { total } = calculateMatchScore(lostItem, foundItem);
-
-    if (total >= MATCH_THRESHOLD) {
-      const match = await MatchModel.create({
-        lostUserId: lostItem.postedBy,
-        foundUserId,
-        lostItemId: lostItem._id,
-        foundItemId: foundItem._id,
-        matchPercentage: total,
-      });
-
-      // Create initial reward offer automatically from the LostItem
-      const reward = await mongoose.model('Reward').create({
-        matchId: match._id,
-        lostUserId: lostItem.postedBy,
-        foundUserId: foundUserId,
-        requestedAmount: lostItem.rewardAmount,
-        status: 'Pending',
-        history: [
-          {
-            proposedBy: lostItem.postedBy,
-            amount: lostItem.rewardAmount,
-            action: 'Proposed'
-          }
-        ]
-      });
-
-      // Create notifications for both users
-      await NotificationModel.create([
-        {
-          userId: lostItem.postedBy,
-          type: 'Match',
-          title: 'Possible match found!',
-          message: `We found a possible match for your lost "${lostItem.itemName}" — ${total}% confidence.`,
-          relatedId: match._id,
-          relatedModel: 'Match',
-        },
-        {
-          userId: foundUserId,
-          type: 'Match',
-          title: 'Possible owner found!',
-          message: `Someone may have lost the "${foundItem.itemName}" you reported — ${total}% confidence.`,
-          relatedId: match._id,
-          relatedModel: 'Match',
-        },
-      ]);
-
-      // Emit socket events to both users about the new match and reward offer
-      emitToUser(lostItem.postedBy.toString(), 'match:new', { matchId: match._id });
-      emitToUser(foundUserId.toString(), 'match:new', { matchId: match._id });
-      
-      emitToUser(foundUserId.toString(), 'reward:offered', {
-        matchId: match._id,
-        rewardId: reward._id,
-        amount: reward.requestedAmount
-      });
-
-      // Send email notifications
-      const [lostUser, foundUser] = await Promise.all([
-        UserModel.findById(lostItem.postedBy),
-        UserModel.findById(foundUserId),
-      ]);
-      if (lostUser && foundUser) {
-        sendMatchNotificationEmail({
-          lostUser: { name: lostUser.name, email: lostUser.email },
-          foundUser: { name: foundUser.name, email: foundUser.email },
-          lostItem: { itemName: lostItem.itemName, description: lostItem.description, images: lostItem.images },
-          foundItem: { itemName: foundItem.itemName, description: foundItem.description, images: foundItem.images },
-          matchPercentage: total,
-          matchId: (match._id as { toString(): string }).toString(),
-        }).catch((e) => console.error('[Email] Notification error:', e));
-      }
-    }
-  }
-}
 
 // PUT /api/found-items/:id
 router.put(

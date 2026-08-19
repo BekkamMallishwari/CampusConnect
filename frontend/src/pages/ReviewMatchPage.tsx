@@ -363,8 +363,12 @@ export default function ReviewMatchPage() {
     );
   }
 
-  const isOwner = match.lostUserId._id === user?.id;
-  const isFinder = match.foundUserId._id === user?.id;
+  const currentUserId = String(user?.id || (user as any)?._id || '');
+  const lostUserIdStr = String((match.lostUserId as any)?._id || (match.lostUserId as any)?.id || match.lostUserId || '');
+  const foundUserIdStr = String((match.foundUserId as any)?._id || (match.foundUserId as any)?.id || match.foundUserId || '');
+
+  const isOwner = Boolean(currentUserId && lostUserIdStr && currentUserId === lostUserIdStr);
+  const isFinder = Boolean(currentUserId && foundUserIdStr && currentUserId === foundUserIdStr);
 
   const ownerAccepted = Boolean(match.ownerAccepted || match.lostUserAccepted);
   const finderAccepted = Boolean(match.finderAccepted || match.foundUserAccepted);

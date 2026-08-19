@@ -91,3 +91,133 @@ export const calculateMatchScore = (lostItem: ILostItem, foundItem: IFoundItem):
 };
 
 export const MATCH_THRESHOLD = 40; // items with >=40% are considered a possible match
+
+import MatchModel from '../models/Match';
+import LostItemModel from '../models/LostItem';
+import FoundItemModel from '../models/FoundItem';
+import RewardModel from '../models/Reward';
+import NotificationModel from '../models/Notification';
+import UserModel from '../models/User';
+import { emitToUser } from './socketHub';
+import { sendMatchNotificationEmail } from './emailService';
+
+export async function processMatchPair(lostItem: ILostItem, foundItem: IFoundItem): Promise<void> {
+  const lostUserIdStr = (lostItem.postedBy as { toString(): string }).toString();
+  const foundUserIdStr = (foundItem.postedBy as { toString(): string }).toString();
+
+  if (lostUserIdStr === foundUserIdStr) return;
+
+  const existing = await MatchModel.findOne({ lostItemId: lostItem._id, foundItemId: foundItem._id });
+  if (existing) return;
+
+  const { total } = calculateMatchScore(lostItem, foundItem);
+  if (total < MATCH_THRESHOLD) return;
+
+  const match = await MatchModel.create({
+    lostUserId: lostItem.postedBy,
+    foundUserId: foundItem.postedBy,
+    lostItemId: lostItem._id,
+    foundItemId: foundItem._id,
+    matchPercentage: total,
+    rewardAmount: lostItem.rewardAmount || 0,
+    rewardStatus: (lostItem.rewardAmount && lostItem.rewardAmount > 0) ? 'Pending' : 'None',
+  });
+
+  // Create initial reward offer automatically if the LostItem offered a reward
+  let reward = null;
+  if (lostItem.rewardAmount && lostItem.rewardAmount > 0) {
+    try {
+      reward = await RewardModel.create({
+        matchId: match._id,
+        lostUserId: lostItem.postedBy,
+        foundUserId: foundItem.postedBy,
+        requestedAmount: lostItem.rewardAmount,
+        status: 'Pending',
+        history: [
+          {
+            proposedBy: lostItem.postedBy,
+            amount: lostItem.rewardAmount,
+            action: 'Proposed',
+          },
+        ],
+      });
+    } catch (rewardErr) {
+      console.warn('[MatchingService] Reward creation error (continuing match):', rewardErr);
+    }
+  }
+
+  // Create notifications for both users
+  const notifLost = await NotificationModel.create({
+    userId: lostItem.postedBy,
+    type: 'Match',
+    title: 'Possible match found!',
+    message: `We found a possible match for your lost "${lostItem.itemName}" — ${total}% confidence.`,
+    relatedId: match._id,
+    relatedModel: 'Match',
+  });
+
+  const notifFound = await NotificationModel.create({
+    userId: foundItem.postedBy,
+    type: 'Match',
+    title: 'Possible owner found!',
+    message: `Someone may have lost the "${foundItem.itemName}" you reported — ${total}% confidence.`,
+    relatedId: match._id,
+    relatedModel: 'Match',
+  });
+
+  // Emit socket events to both users
+  emitToUser(lostUserIdStr, 'match:new', { matchId: match._id, percentage: total });
+  emitToUser(foundUserIdStr, 'match:new', { matchId: match._id, percentage: total });
+  emitToUser(lostUserIdStr, 'notification:new', notifLost);
+  emitToUser(foundUserIdStr, 'notification:new', notifFound);
+
+  if (reward) {
+    emitToUser(foundUserIdStr, 'reward:offered', {
+      matchId: match._id,
+      rewardId: reward._id,
+      amount: reward.requestedAmount,
+    });
+  }
+
+  // Send email notifications asynchronously
+  UserModel.find({ _id: { $in: [lostItem.postedBy, foundItem.postedBy] } })
+    .then(([u1, u2]) => {
+      const lostUser = (u1?._id?.toString() === lostUserIdStr) ? u1 : u2;
+      const foundUser = (u1?._id?.toString() === foundUserIdStr) ? u1 : u2;
+      if (lostUser && foundUser) {
+        sendMatchNotificationEmail({
+          lostUser: { name: lostUser.name, email: lostUser.email },
+          foundUser: { name: foundUser.name, email: foundUser.email },
+          lostItem: { itemName: lostItem.itemName, description: lostItem.description, images: lostItem.images || [] },
+          foundItem: { itemName: foundItem.itemName, description: foundItem.description, images: foundItem.images || [] },
+          matchPercentage: total,
+          matchId: match._id.toString(),
+        }).catch((e) => console.error('[MatchingService] Match notification email failed:', e));
+      }
+    })
+    .catch((e) => console.error('[MatchingService] User lookup for match email failed:', e));
+}
+
+export async function triggerMatchingForFoundItem(foundItem: IFoundItem, foundUserId: string): Promise<void> {
+  try {
+    const activeLostItems = await LostItemModel.find({ isActive: true, status: 'Pending' });
+    for (const lostItem of activeLostItems) {
+      if (lostItem.postedBy.toString() === foundUserId) continue;
+      await processMatchPair(lostItem, foundItem);
+    }
+  } catch (err) {
+    console.error('[MatchingService] triggerMatchingForFoundItem error:', err);
+  }
+}
+
+export async function triggerMatchingForLostItem(lostItem: ILostItem, lostUserId: string): Promise<void> {
+  try {
+    const activeFoundItems = await FoundItemModel.find({ isActive: true, status: 'Waiting' });
+    for (const foundItem of activeFoundItems) {
+      if (foundItem.postedBy.toString() === lostUserId) continue;
+      await processMatchPair(lostItem, foundItem);
+    }
+  } catch (err) {
+    console.error('[MatchingService] triggerMatchingForLostItem error:', err);
+  }
+}

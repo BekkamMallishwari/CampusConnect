@@ -466,16 +466,6 @@ export const paymentsApi = {
       match: MatchType;
     }>('/payments/verify', payload),
   getById: (id: string) => api.get<{ success: boolean; payment: PaymentType }>(`/payments/${id}`),
-  createSession: (rewardId: string) =>
-    api.post<{
-      sessionId?: string;
-      sessionUrl?: string;
-      simulatedUrl?: string;
-      mode?: string;
-      paymentId: string;
-    }>('/payments/create-session', { rewardId }),
-  confirmPayment: (paymentId: string, sessionId?: string) =>
-    api.post<{ message: string; payment: PaymentType }>('/payments/confirm', { paymentId, sessionId }),
   getAll: () => api.get<{ payments: PaymentType[] }>('/payments'),
   downloadReceipt: (id: string) => api.get(`/payments/${id}/receipt`, { responseType: 'blob' }),
 };

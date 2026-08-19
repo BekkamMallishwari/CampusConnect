@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, useCallback, type FormEvent } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -23,16 +23,17 @@ import {
   Loader2,
   Navigation,
   CreditCard,
+  FileText,
   type LucideIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { notificationsApi, type NotificationType } from '../lib/api';
+import { notificationsApi, chatsApi } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { AvatarBadge } from './portal';
 import CampusBrandMark from './CampusBrandMark';
-import { groupNotifications } from '../lib/notifications';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { getSocket } from '../lib/socket';
 
 type NavItem = {
   name: string;
@@ -47,7 +48,8 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [notifications, setNotifications] = useState<NotificationType[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState<number>(0);
+  const [unreadMessageCount, setUnreadMessageCount] = useState<number>(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [locationPopoverOpen, setLocationPopoverOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -62,30 +64,97 @@ export default function Navbar() {
 
   const { coordinates, status: geoStatus, errorMessage: geoError, locationInfo, requestLocation } = useUserLocation();
 
-  const unreadMessageCount = useMemo(
-    () => groupNotifications(notifications).reduce((total, group) => total + group.unreadCount, 0),
-    [notifications],
-  );
-  const unreadBadgeLabel = unreadMessageCount > 99 ? '99+' : `${unreadMessageCount}`;
+  // Initial & Periodic fetch for notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!user) {
+      setUnreadNotificationCount(0);
+      return;
+    }
+    try {
+      const res = await notificationsApi.getAll();
+      const notifs = res.data.notifications || [];
+      setUnreadNotificationCount(
+        typeof res.data.unreadCount === 'number'
+          ? res.data.unreadCount
+          : notifs.filter((n) => !n.isRead).length
+      );
+    } catch {
+      setUnreadNotificationCount(0);
+    }
+  }, [user]);
+
+  // Initial & Periodic fetch for unread messages
+  const fetchUnreadMessages = useCallback(async () => {
+    if (!user) {
+      setUnreadMessageCount(0);
+      return;
+    }
+    try {
+      const res = await chatsApi.getAll();
+      const chats = res.data.chats || [];
+      const totalUnread = chats.reduce((total, chat) => total + (chat.unreadCount || 0), 0);
+      setUnreadMessageCount(totalUnread);
+    } catch {
+      setUnreadMessageCount(0);
+    }
+  }, [user]);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user) {
-        setNotifications([]);
-        return;
-      }
-      try {
-        const res = await notificationsApi.getAll();
-        setNotifications(res.data.notifications || []);
-      } catch {
-        setNotifications([]);
-      }
+    fetchNotifications();
+    fetchUnreadMessages();
+    const interval = window.setInterval(() => {
+      fetchNotifications();
+      fetchUnreadMessages();
+    }, 20000);
+    return () => window.clearInterval(interval);
+  }, [fetchNotifications, fetchUnreadMessages]);
+
+  // Real-time Socket.IO synchronization for notifications and messages
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !user) return;
+
+    const handleNewNotification = () => {
+      setUnreadNotificationCount((prev) => prev + 1);
     };
 
-    fetchNotifications();
-    const interval = window.setInterval(fetchNotifications, 30000);
-    return () => window.clearInterval(interval);
-  }, [user]);
+    const handleRefresh = () => {
+      fetchNotifications();
+      fetchUnreadMessages();
+    };
+
+    socket.on('notification:new', handleNewNotification);
+    socket.on('notification:new-message', handleRefresh);
+    socket.on('chat:message', handleRefresh);
+    socket.on('message:new', handleRefresh);
+    socket.on('chat:read', handleRefresh);
+    socket.on('chat:updated', handleRefresh);
+    socket.on('match:new', handleRefresh);
+    socket.on('match:updated', handleRefresh);
+    socket.on('match:accepted', handleRefresh);
+    socket.on('reward:offered', handleRefresh);
+    socket.on('reward:accepted', handleRefresh);
+    socket.on('reward:updated', handleRefresh);
+    socket.on('payment:success', handleRefresh);
+    socket.on('payment:failed', handleRefresh);
+
+    return () => {
+      socket.off('notification:new', handleNewNotification);
+      socket.off('notification:new-message', handleRefresh);
+      socket.off('chat:message', handleRefresh);
+      socket.off('message:new', handleRefresh);
+      socket.off('chat:read', handleRefresh);
+      socket.off('chat:updated', handleRefresh);
+      socket.off('match:new', handleRefresh);
+      socket.off('match:updated', handleRefresh);
+      socket.off('match:accepted', handleRefresh);
+      socket.off('reward:offered', handleRefresh);
+      socket.off('reward:accepted', handleRefresh);
+      socket.off('reward:updated', handleRefresh);
+      socket.off('payment:success', handleRefresh);
+      socket.off('payment:failed', handleRefresh);
+    };
+  }, [user, fetchNotifications, fetchUnreadMessages]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
@@ -151,8 +220,6 @@ export default function Navbar() {
     { name: 'Payments', path: '/payments', icon: CreditCard },
   ];
 
-  const displayName = user?.name?.split(' ')[0] || 'Nature';
-
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
@@ -210,8 +277,8 @@ export default function Navbar() {
                 >
                   <Icon size={13.5} className="shrink-0" />
                   <span>{item.name}</span>
-                  {item.badge ? (
-                    <span className="rounded-full bg-purple-600 px-1 py-0.2 text-[8.5px] font-black text-white leading-none">
+                  {!!item.badge && item.badge > 0 ? (
+                    <span className="inline-flex items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[9px] font-black text-white leading-none shadow-xs">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   ) : null}
@@ -220,12 +287,12 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* 3. RIGHT CONTROLS (Search → Location → Theme → Security → Notifications → Profile) */}
+          {/* 3. RIGHT CONTROLS: [Search] [Location] [Theme] [Security] [Notifications] [Avatar] */}
           <div className="flex items-center gap-1 xl:gap-1.5 2xl:gap-2 shrink-0">
             {/* Search Bar */}
             <form
               onSubmit={handleSearchSubmit}
-              className="hidden lg:flex h-8 w-[105px] xl:w-[125px] 2xl:w-[145px] items-center overflow-hidden rounded-full border border-slate-200 bg-slate-100/70 px-2.5 transition-all focus-within:w-[155px] xl:focus-within:w-[175px] focus-within:border-purple-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-within:bg-slate-800"
+              className="hidden lg:flex h-8 w-[110px] xl:w-[130px] 2xl:w-[150px] items-center overflow-hidden rounded-full border border-slate-200 bg-slate-100/70 px-2.5 transition-all focus-within:w-[160px] xl:focus-within:w-[185px] focus-within:border-purple-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-500/20 dark:border-slate-800 dark:bg-slate-800/50 dark:focus-within:bg-slate-800"
             >
               <button
                 type="submit"
@@ -238,14 +305,14 @@ export default function Navbar() {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search anything..."
+                placeholder="Search..."
                 className="h-full min-w-0 flex-1 border-0 bg-transparent text-[11px] font-medium text-slate-800 outline-none placeholder:text-slate-400 dark:text-slate-100"
               />
               <button
                 type="button"
                 onClick={() => setSearchModalOpen(true)}
                 className="inline-flex shrink-0 items-center rounded border border-slate-200 bg-white px-1 py-0.2 text-[9px] font-bold text-slate-400 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-700 dark:text-slate-300"
-                title="Open search modal (Ctrl+K)"
+                title="Open search modal (Ctrl+K or ⌘K)"
               >
                 <Command size={8} className="mr-0.5" />
                 K
@@ -272,7 +339,7 @@ export default function Navbar() {
                     requestLocation().catch(() => {});
                   }
                 }}
-                className={`relative inline-flex h-8 items-center gap-1.5 rounded-full border transition px-2.5 text-[11px] font-semibold max-w-[120px] xl:max-w-[140px] 2xl:max-w-[165px] ${
+                className={`relative inline-flex h-8 items-center gap-1.5 rounded-full border transition px-2.5 text-[11px] font-semibold max-w-[120px] xl:max-w-[140px] 2xl:max-w-[160px] ${
                   geoStatus === 'granted'
                     ? 'border-emerald-300/90 bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100/90 dark:border-emerald-800/80 dark:bg-emerald-950/60 dark:text-emerald-300'
                     : geoStatus === 'requesting'
@@ -417,84 +484,91 @@ export default function Navbar() {
               title="Notifications"
             >
               <Bell size={14} />
-              {unreadMessageCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-rose-500 px-0.5 text-[8px] font-extrabold text-white ring-1.5 ring-white dark:ring-slate-900">
-                  {unreadBadgeLabel}
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-600 px-1 text-[8.5px] font-black text-white ring-2 ring-white dark:ring-slate-900 shadow-xs">
+                  {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                 </span>
               )}
             </Link>
 
-            {/* Profile Pill */}
-            <div className="relative shrink-0" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setDropdownOpen((open) => !open)}
-                className="flex h-8 items-center gap-1.5 rounded-full border border-slate-200 bg-white pl-1 pr-2.5 transition hover:bg-slate-50 focus:outline-none dark:border-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700"
-                aria-expanded={dropdownOpen}
-                aria-label="User account menu"
-                title="Profile"
-              >
-                <div className="relative flex items-center">
-                  <AvatarBadge name={user?.name} avatar={user?.avatar} size="xs" />
-                  <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full border border-white bg-emerald-500 dark:border-slate-900" />
-                </div>
-                <span className="max-w-[70px] xl:max-w-[85px] truncate text-[11.5px] font-bold text-slate-700 dark:text-slate-200">
-                  {displayName}
-                </span>
-                <ChevronDown size={12} className="text-slate-400" />
-              </button>
+            {/* Compact Profile Avatar Button (No user text in navbar bar) */}
+            {user ? (
+              <div className="relative shrink-0" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen((open) => !open)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white p-0.5 transition hover:ring-2 hover:ring-purple-500/30 focus:outline-none dark:border-slate-800 dark:bg-slate-800"
+                  aria-expanded={dropdownOpen}
+                  aria-label="User account menu"
+                  title={`Account: ${user.name}`}
+                >
+                  <div className="relative flex items-center justify-center">
+                    <AvatarBadge name={user.name} avatar={user.avatar} size="xs" />
+                    <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full border border-white bg-emerald-500 dark:border-slate-900" />
+                  </div>
+                </button>
 
-              <AnimatePresence>
-                {dropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-10 z-50 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-lg backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-900"
-                  >
-                    <div className="border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-800">
-                      <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{user?.name}</p>
-                      <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">{user?.email}</p>
-                    </div>
-                    <div className="p-1 space-y-0.5">
-                      <Link
-                        to="/profile"
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        <UserCircle size={15} className="text-purple-600 dark:text-purple-400" />
-                        My profile
-                      </Link>
-                      <Link
-                        to="/rewards"
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        <Gift size={15} className="text-indigo-600 dark:text-indigo-400" />
-                        Rewards & Points
-                      </Link>
-                      <Link
-                        to="/admin"
-                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                      >
-                        <Shield size={15} className="text-amber-500" />
-                        Security & Admin
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
-                      >
-                        <LogOut size={15} />
-                        Log Out
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Log In / Log Out button (if user is logged out) */}
-            {!user && (
+                <AnimatePresence>
+                  {dropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-10 z-50 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-xl backdrop-blur-2xl dark:border-slate-800 dark:bg-slate-900"
+                    >
+                      <div className="border-b border-slate-100 px-3.5 py-3 dark:border-slate-800">
+                        <div className="flex items-center gap-2.5">
+                          <AvatarBadge name={user.name} avatar={user.avatar} size="sm" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{user.name}</p>
+                            <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">{user.email}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-1 space-y-0.5">
+                        <Link
+                          to="/profile"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                        >
+                          <UserCircle size={15} className="text-purple-600 dark:text-purple-400" />
+                          My Profile
+                        </Link>
+                        <Link
+                          to="/my-reports"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                        >
+                          <FileText size={15} className="text-blue-500" />
+                          My Item Reports
+                        </Link>
+                        <Link
+                          to="/rewards"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                        >
+                          <Gift size={15} className="text-indigo-600 dark:text-indigo-400" />
+                          Rewards & Points
+                        </Link>
+                        <Link
+                          to="/admin"
+                          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                        >
+                          <Shield size={15} className="text-amber-500" />
+                          Security & Admin
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                        >
+                          <LogOut size={15} />
+                          Log Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
               <Link
                 to="/login"
                 className="inline-flex h-8 items-center gap-1.5 rounded-full bg-purple-600 px-3.5 text-xs font-semibold text-white transition hover:bg-purple-700 shadow-sm"
@@ -644,20 +718,25 @@ export default function Navbar() {
                   <Link
                     to="/notifications"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                    className="relative inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-200"
                   >
                     <Bell size={15} />
-                    Notifications
+                    <span>Notifications</span>
+                    {unreadNotificationCount > 0 && (
+                      <span className="rounded-full bg-rose-600 px-1.5 py-0.2 text-[9px] font-black text-white shadow-xs">
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </span>
+                    )}
                   </Link>
                 </div>
 
                 {user ? (
                   <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-slate-800">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <AvatarBadge name={user?.name} avatar={user?.avatar} size="sm" />
+                      <AvatarBadge name={user.name} avatar={user.avatar} size="sm" />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{user?.name}</p>
-                        <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">{user?.email}</p>
+                        <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{user.name}</p>
+                        <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">{user.email}</p>
                       </div>
                     </div>
                     <button
@@ -685,7 +764,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      {/* Global Search Modal Overlay */}
+      {/* Global Search Modal Overlay (⌘K / Ctrl+K) */}
       <AnimatePresence>
         {searchModalOpen && (
           <motion.div
@@ -726,7 +805,7 @@ export default function Navbar() {
                 </button>
               </form>
               <p className="mt-2.5 text-[11px] text-slate-500 dark:text-slate-400">
-                Press <span className="font-bold text-slate-700 dark:text-slate-200">Esc</span> to close or <span className="font-bold text-slate-700 dark:text-slate-200">Ctrl K</span> to reopen.
+                Press <span className="font-bold text-slate-700 dark:text-slate-200">Esc</span> to close or <span className="font-bold text-slate-700 dark:text-slate-200">⌘K / Ctrl K</span> to reopen.
               </p>
             </motion.div>
           </motion.div>
@@ -735,6 +814,3 @@ export default function Navbar() {
     </>
   );
 }
-
-
-

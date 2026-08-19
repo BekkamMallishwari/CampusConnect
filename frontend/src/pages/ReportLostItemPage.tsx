@@ -134,7 +134,12 @@ export default function ReportLostItemPage() {
       const formData = new FormData();
       Object.keys(data).forEach((key) => {
         const val = (data as any)[key];
-        if (val !== undefined && val !== null) formData.append(key, val);
+        if (key === 'rewardAmount') {
+          const num = Number(val);
+          formData.append('rewardAmount', (!Number.isNaN(num) && num > 0) ? String(num) : '0');
+        } else if (val !== undefined && val !== null && val !== '') {
+          formData.append(key, val);
+        }
       });
 
       const remoteUrls = displayedImages.filter((img) => img.startsWith('http://') || img.startsWith('https://'));
@@ -225,19 +230,6 @@ export default function ReportLostItemPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>
-                  Item Title <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Apple iPhone 14 Pro Max in Space Black"
-                  {...register('itemName', { required: 'Item title is required' })}
-                  className={`glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium ${errors.itemName ? 'border-rose-500' : ''}`}
-                />
-                {errors.itemName && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.itemName.message}</p>}
-              </div>
-
-              <div>
-                <label className={labelCls}>
                   Category <span className="text-rose-500">*</span>
                 </label>
                 <select
@@ -248,6 +240,31 @@ export default function ReportLostItemPage() {
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className={labelCls}>
+                  {watchAll.category === 'Other' ? 'Item Name' : 'Item Title'} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder={
+                    watchAll.category === 'Other'
+                      ? 'Enter the item name, e.g. Umbrella, ID Holder, Watch'
+                      : 'e.g., Apple iPhone 14 Pro Max in Space Black'
+                  }
+                  {...register('itemName', {
+                    required: watchAll.category === 'Other' ? 'Please enter the item name.' : 'Item title is required',
+                    validate: (value) => {
+                      if (!value || !value.trim()) {
+                        return watchAll.category === 'Other' ? 'Please enter the item name.' : 'Item title is required';
+                      }
+                      return true;
+                    },
+                  })}
+                  className={`glass-input h-11 w-full px-4 text-xs sm:text-sm font-medium ${errors.itemName ? 'border-rose-500' : ''}`}
+                />
+                {errors.itemName && <p className="mt-1 text-xs text-rose-500 font-semibold">{errors.itemName.message}</p>}
               </div>
             </div>
 

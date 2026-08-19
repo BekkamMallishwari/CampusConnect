@@ -164,7 +164,7 @@ export const RewardPayment: React.FC<RewardPaymentProps> = ({
               paymentId,
             });
             setIsPaid(true);
-            toast.success('🎉 Reward payment verified (Simulation)!');
+            toast.success('🎉 Reward payment verified successfully!');
             if (onPaymentSuccess) onPaymentSuccess();
           } catch (e: any) {
             toast.error('Simulation payment failed');
@@ -182,6 +182,49 @@ export const RewardPayment: React.FC<RewardPaymentProps> = ({
       setStatusText('');
     }
   };
+
+  if (!isOwner) {
+    return (
+      <div className="glass-panel p-5 sm:p-6 rounded-[24px] space-y-4 border shadow-sm" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4" style={{ borderColor: 'var(--glass-border)' }}>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-xs" style={{ background: isPaid ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+              <CreditCard size={18} />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm sm:text-base" style={{ color: 'var(--dash-text-primary)' }}>Reward Payment</h3>
+              <p className="text-xs text-slate-500">
+                {isPaid ? 'Reward funds received in escrow.' : 'Payment will be completed by the item owner.'}
+              </p>
+            </div>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider rounded-full border self-start sm:self-auto ${
+            isPaid ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+          }`}>
+            {isPaid ? <Check size={13} /> : <Clock size={13} />}
+            STATUS: {isPaid ? 'PAID' : 'PENDING'}
+          </span>
+        </div>
+
+        <div className="rounded-2xl p-4 border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg-subtle)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: 'var(--dash-text-muted)' }}>Reward for {itemName}</p>
+              <p className="text-xs font-semibold" style={{ color: 'var(--dash-text-secondary)' }}>Payable to: <strong style={{ color: 'var(--dash-text-primary)' }}>{finderName}</strong></p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: 'var(--dash-text-muted)' }}>Amount</p>
+              <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">₹{amount.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-[10px] font-bold" style={{ color: 'var(--dash-text-muted)' }}>
+          <ShieldCheck size={12} /> {isPaid ? 'Reward funds will be disbursed upon verified item handover.' : 'Reward funds will be held in secure escrow once paid by owner.'}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-panel overflow-hidden transition-all duration-300">
@@ -246,43 +289,33 @@ export const RewardPayment: React.FC<RewardPaymentProps> = ({
         </div>
 
         {/* Action Button */}
-        {isOwner ? (
-          <button
-            onClick={handleInitiatePayment}
-            disabled={loading || !scriptLoaded || isPaid || amount <= 0}
-            className={`dash-btn-primary w-full py-3 px-4 text-xs font-bold shadow-md transition-all ${
-              isPaid
-                ? 'opacity-60 cursor-not-allowed'
-                : ''
-            }`}
-          >
-            {isPaid ? (
-              <>
-                <CheckCircle2 size={16} className="text-emerald-300" />
-                Payment Completed Successfully
-              </>
-            ) : loading ? (
-              <>
-                <Loader2 size={16} className="animate-spin text-white" />
-                {statusText || 'Processing...'}
-              </>
-            ) : (
-              <>
-                <ShieldCheck size={16} />
-                Pay ₹{amount.toLocaleString('en-IN')} Securely via Razorpay
-                <ArrowRight size={14} />
-              </>
-            )}
-          </button>
-        ) : (
-          <div className="rounded-xl border p-3.5 text-xs text-center font-semibold" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)', color: 'var(--dash-text-secondary)' }}>
-            {isPaid ? (
-              <span className="flex items-center justify-center gap-2 text-emerald-600 font-bold"><CheckCircle2 size={15}/> Reward payment received!</span>
-            ) : (
-              <span className="flex items-center justify-center gap-2 animate-pulse"><Clock size={15}/> Waiting for owner to complete the reward payment...</span>
-            )}
-          </div>
-        )}
+        <button
+          onClick={handleInitiatePayment}
+          disabled={loading || !scriptLoaded || isPaid || amount <= 0}
+          className={`dash-btn-primary w-full py-3.5 px-4 text-xs sm:text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 ${
+            isPaid
+              ? 'opacity-70 cursor-not-allowed bg-emerald-600 hover:bg-emerald-600'
+              : 'hover:scale-[1.01] active:scale-[0.99]'
+          }`}
+        >
+          {isPaid ? (
+            <>
+              <CheckCircle2 size={18} className="text-emerald-200" />
+              <span>Reward Payment Completed Successfully</span>
+            </>
+          ) : loading ? (
+            <>
+              <Loader2 size={18} className="animate-spin text-white" />
+              <span>{statusText || 'Processing Payment...'}</span>
+            </>
+          ) : (
+            <>
+              <ShieldCheck size={18} />
+              <span>Pay ₹{amount.toLocaleString('en-IN')} Securely via Razorpay</span>
+              <ArrowRight size={16} />
+            </>
+          )}
+        </button>
 
         <div className="flex items-center justify-center gap-2 text-[10px] font-bold" style={{ color: 'var(--dash-text-muted)' }}>
           <ShieldCheck size={12} /> Payments are fully secured and escrowed until item is verified.

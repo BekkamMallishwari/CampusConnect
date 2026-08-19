@@ -41,7 +41,7 @@ const foundItemSchema = new Schema<IFoundItem>(
       required: true,
     },
     rewardExpected: { type: Boolean, default: false },
-    rewardAmount: { type: Number },
+    rewardAmount: { type: Number, default: 0, min: 0 },
     status: {
       type: String,
       enum: ['Waiting', 'Matched', 'Returned'],
